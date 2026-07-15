@@ -795,3 +795,27 @@ Outcome and verification: Added a conservative 32-byte and 20-unique-character f
 Performance observations: 4m12s. Balanced security and false-positive control with a simple measurable threshold.
 
 Routing assessment: Luna high is suitable for narrowly scoped heuristic tuning with explicit positive/negative thresholds. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 2 ninth review cancelled by coordinator
+
+Command and run: `delegate --group papercuts-wave2-closure9 codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree; run handle: `codex-42`.
+
+Task and expectation: Ninth full-range Wave 2 closure review after lowercase entropy hardening.
+
+Outcome and verification: Cancelled before completion when Trey explicitly accepted the best-effort redaction boundary and directed the orchestration to move on. No findings were adjudicated and no files changed.
+
+Performance observations: The run was still actively inspecting sources when cancelled; no completion report was produced.
+
+Routing assessment: Do not treat as review evidence. Wave 2 closure is user-accepted based on the prior implementation gates and documented best-effort limitation. Confidence: high in the cancellation record.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 2 ninth review cancelled by coordinator
+
+Command and run: `delegate --group papercuts-wave2-closure9 cursor safe --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree; run handle: `cursor-14`.
+
+Task and expectation: Ninth independent full-range Wave 2 closure review.
+
+Outcome and verification: Cancelled before completion under Trey's explicit instruction to stop redaction review and move on. No completion report was produced and no files changed.
+
+Performance observations: The run had substantial read-only output but had not finalized findings.
+
+Routing assessment: Do not treat as review evidence. Confidence: high in the cancellation record.
