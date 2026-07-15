@@ -352,6 +352,42 @@ Performance observations: 21s. This cleanly isolated a partial mechanism: SHELL 
 
 Routing assessment: Reuse after the launcher explicitly sources agent.sh; do not claim acceptance from Bash identity alone. Confidence: high.
 
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 1 Claude launcher fallback
+
+Command and run: `delegate --group papercuts-wave1-launcher-fallback codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave1-launcher-fallback.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place with launcher ownership; run handle: `codex-19`.
+
+Task and expectation: Implement explicit GNU-first Claude launchers after settings propagated Bash but not the agent PATH.
+
+Outcome and verification: Updated work/personal Delegate launchers and added a direct default-profile `claude-agent` wrapper without replacing the managed Claude symlink. Syntax, modes, version execution, PATH idempotence, auth-unset preservation, and missing-binary failure passed. Coordinator independently reran syntax, modes, and direct version.
+
+Performance observations: 2m27s. Minimal, correctly preserved profile/auth semantics, and avoided hardcoded Claude versions.
+
+Routing assessment: Use Terra high for launcher/wrapper fallbacks where preservation of surrounding auth behavior matters. Confidence: high.
+
+## 2026-07-15 - Claude via claude - Wave 1 final shell acceptance
+
+Command and run: `delegate --group papercuts-wave1-claude-final claude safe --reasoning-effort low --prompt-file /tmp/papercuts-shell-probe.md`; alias/variant/effort: default Claude, low; mode/isolation: safe/temporary worktree; run handle: `claude-3`.
+
+Task and expectation: Repeat the identity probe after the work-profile launcher explicitly sourced agent.sh.
+
+Outcome and verification: Accepted. Actual shell was Homebrew Bash 5.3; sed and awk resolved to the GNU gnubin paths; papercuts, delegate, and exa-agent resolved. No files read or changed.
+
+Performance observations: 19s, exact seven-line evidence, no secret output.
+
+Routing assessment: Claude work-profile shell migration is empirically accepted; reuse this same probe after launcher or profile updates. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 1 acceptance note
+
+Command and run: `delegate --group papercuts-wave1-accept-note codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave1-accept-note.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place with one-file ownership; run handle: `codex-20`.
+
+Task and expectation: Record the evidence-based final Wave 1 harness matrix without changing live configuration or global instructions.
+
+Outcome and verification: Updated only the staged note: Claude work profile accepted, Codex/Luna and Cursor/Grok deferred, direct default Claude routed through `claude-agent`. Diff check passed.
+
+Performance observations: 43s. Exact, no scope creep.
+
+Routing assessment: Terra is effective for small evidence-to-document propagation. Confidence: high.
+
 ## 2026-07-15 - Claude via claude - Wave 1 shell acceptance probe
 
 Command and run: `delegate --group papercuts-wave1-accept claude safe --reasoning-effort low --prompt-file /tmp/papercuts-shell-probe.md`; alias/variant/effort: default Claude, low; mode/isolation: safe/temporary worktree; run handle: `claude-1`.
