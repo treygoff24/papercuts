@@ -255,3 +255,39 @@ Outcome and verification: Updated the owned live files and staged note. Reported
 Performance observations: 9m35s. The code fixes were focused and the lane filed its own test-friction papercuts. However, one initial audit command printed a credential value into the private Delegate tool transcript, violating the name/boolean-only brief. The value was not copied into files or the final response; the lane filed major security cut `pc_1a4a792f1777`. This is a material credential-handling failure and creates rotation/trace-cleanup burden.
 
 Routing assessment: Do not use Luna for direct inspection of credential-bearing files unless the prompt forbids content reads and supplies a prebuilt sanitized bundle; use Terra or coordinator-generated structural probes instead. For non-secret shell fixes Luna remains viable. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 1 post-fix review
+
+Command and run: `delegate --cwd /tmp/papercuts-wave1-review.BCpo6K --group papercuts-wave1-rereview codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave1-rereview.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/private directory copy; run handle: `codex-2` in the bundle workspace.
+
+Task and expectation: Fresh review of Luna's shell fixes, limited to prior findings and regressions.
+
+Outcome and verification: Found three majors: Google aliases were unconditionally clobbered versus original preserve-if-set semantics, existing gnubin paths were not moved ahead of BSD paths, and unset PATH created an unsafe trailing-colon current-directory entry. No edits; deferred harness acceptance remained correctly deferred.
+
+Performance observations: 4m0s. The focused private bundle cut review time substantially while still running safe simulations. It caught two issues a static read alone might miss: resolution order with preexisting PATH entries and the security meaning of an empty PATH component.
+
+Routing assessment: Sol high remains the preferred executable closing review for shell startup code. Confidence: high.
+
+## 2026-07-15 - grok-4.5 via grok - Wave 1 post-fix review
+
+Command and run: `delegate --cwd /tmp/papercuts-wave1-review.BCpo6K --group papercuts-wave1-rereview grok safe --reasoning-effort high --prompt-file /tmp/papercuts-wave1-rereview.md`; alias/variant/effort: `grok-4.5`, high; mode/isolation: safe/private directory copy; run handle: `grok-2` in the bundle workspace.
+
+Task and expectation: Independent static re-review of the bounded Wave 1 fixes.
+
+Outcome and verification: Converged on the Google-alias regression and verified the other requested fixes statically. It missed Sol's PATH-order and trailing-colon defects, illustrating the value of the executable companion lane.
+
+Performance observations: 1m27s. Fast and credential-safe, with a concise one-finding report. Static-only constraint limited PATH behavior coverage.
+
+Routing assessment: Keep Grok for quick semantic comparison against originals, paired with Sol for shell execution behavior. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 1 shell fixes round 2
+
+Command and run: `delegate --group papercuts-wave1-fix2 codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave1-fix2.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place with four-file ownership; run handle: `codex-15`.
+
+Task and expectation: Restore Google alias preserve-if-set semantics, guarantee exact GNU prefix normalization, and eliminate empty PATH components under unset/empty PATH.
+
+Outcome and verification: Updated only the three shell files and staged note, plus mandatory friction logging. Dummy/name-only alias cases, syntax, ShellCheck with documented baseline exclusions, unset/empty/malformed PATH, late-existing gnubin normalization, exact sed/awk resolution, idempotence, and helper cleanup passed. Coordinator independently confirmed the critical PATH behavior and GNU resolution.
+
+Performance observations: 7m4s. Precise findings-shaped repair with no credential output and no scope creep. Terra handled the security-sensitive semantic preservation more reliably than the preceding Luna round.
+
+Routing assessment: Prefer Terra high over Luna for credential-adjacent shell fixes and alias-routing semantics. Confidence: high.
