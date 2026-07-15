@@ -291,3 +291,39 @@ Outcome and verification: Updated only the three shell files and staged note, pl
 Performance observations: 7m4s. Precise findings-shaped repair with no credential output and no scope creep. Terra handled the security-sensitive semantic preservation more reliably than the preceding Luna round.
 
 Routing assessment: Prefer Terra high over Luna for credential-adjacent shell fixes and alias-routing semantics. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 1 final source gate
+
+Command and run: `delegate --cwd /tmp/papercuts-wave1-review.BCpo6K --group papercuts-wave1-final-review codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave1-final-review.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/private directory copy; run handle: `codex-3` in the bundle workspace.
+
+Task and expectation: Final blocker/major-only review of alias preservation, GNU prefix normalization, PATH safety, and regressions.
+
+Outcome and verification: Found one remaining major: literal `.` PATH entries survived cleanup and permit working-directory command shadowing in agent shells. All other targeted simulations and semantic comparisons passed. Live harness acceptance remained deferred.
+
+Performance observations: 9m58s. The run was slower than expected for one finding but executed a broad PATH matrix and caught a real edge Grok explicitly accepted.
+
+Routing assessment: Continue treating Sol as severity authority for shell security edges; its conservative read of current-directory search is correct for agent execution. Confidence: high.
+
+## 2026-07-15 - grok-4.5 via grok - Wave 1 final source gate
+
+Command and run: `delegate --cwd /tmp/papercuts-wave1-review.BCpo6K --group papercuts-wave1-final-review grok safe --reasoning-effort high --prompt-file /tmp/papercuts-wave1-final-review.md`; alias/variant/effort: `grok-4.5`, high; mode/isolation: safe/private directory copy; run handle: `grok-3` in the bundle workspace.
+
+Task and expectation: Independent final static review of the same bounded defects.
+
+Outcome and verification: Declared CLEAN and explicitly treated literal `.` as outside its no-empty-component criterion. Coordinator rejected that severity call because agent shells must not search the working directory. Other checks converged cleanly.
+
+Performance observations: 1m22s. Fast and accurate on the specified defects, but the narrow literal interpretation missed the security implication of an explicit current-directory component.
+
+Routing assessment: Grok remains useful for fast static closure, but Sol/coordinator must adjudicate path and trust-boundary severity. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 1 agent-only PATH boundary
+
+Command and run: `delegate --group papercuts-wave1-fix3 codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave1-fix3.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place with three-file ownership; run handle: `codex-16`.
+
+Task and expectation: Preserve nonempty interactive PATH semantics in the shared layer while removing empty and literal-current-directory entries only in the agent layer.
+
+Outcome and verification: Updated env.sh, agent.sh, and staged note. Synthetic preservation, agent normalization, GNU order, idempotence, safe-base startup, syntax, and scoped ShellCheck passed. Coordinator independently confirmed interactive `.` preservation and agent-only removal.
+
+Performance observations: 2m56s. Fast, correctly bounded, no credential inspection, and no scope creep.
+
+Routing assessment: Terra high is the preferred closeout lane for small trust-boundary shell corrections. Confidence: high.
