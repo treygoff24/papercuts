@@ -140,7 +140,234 @@ fn add_evidence_flags_are_redacted_bounded_and_optional_fields_are_omitted() {
         &temp.path().join("missing-stderr.jsonl"),
         &["add", "missing stderr", "--stderr-file", "does-not-exist"],
     );
-    error(&missing_stderr, 66, "not_found");
+    let missing = error(&missing_stderr, 66, "not_found");
+    assert!(
+        missing
+            .error
+            .message
+            .starts_with("stderr evidence file not found:")
+    );
+    assert!(missing.error.suggested_fix.contains("--stderr-file PATH"));
+}
+
+#[test]
+fn evidence_redaction_handles_boundary_headers_unicode_json_and_cli_options() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let stderr_file = temp.path().join("stderr.txt");
+    let secret = "boundary-secret-value";
+    let quoted_secret = "quoted-secret-value";
+    let header_secret = "header-secret-value";
+    let url = "https://example.test/a/AbCdEf0123456789GhIjKlMnOpQrStUv";
+    let path = "/tmp/AbCdEf0123456789GhIjKlMnOpQrStUv.log";
+    std::fs::write(
+        &stderr_file,
+        format!(
+            "{}Authorization: Basic {secret}\ncontext=kept",
+            "x".repeat(4092)
+        ),
+    )
+    .unwrap();
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args([
+            "add",
+            "tool failed",
+            "--agent",
+            "tester",
+            "--stderr-file",
+        ])
+        .arg(&stderr_file)
+        .args([
+            "--cmd",
+            &format!("tool --api-key {secret} --path /tmp/harmless"),
+            "--evidence",
+            &format!(
+                "\"api_key\"\u{2003}:\u{2002}\"{quoted_secret}\" authorization\u{2003}:\u{2002}Bearer {header_secret} url={url} path={path}"
+            ),
+        ])
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let stored = std::fs::read_to_string(&file).unwrap();
+    for (label, evidence, forbidden) in [
+        (
+            "command",
+            added
+                .data
+                .record
+                .evidence
+                .as_ref()
+                .unwrap()
+                .cmd
+                .as_deref()
+                .unwrap(),
+            secret,
+        ),
+        (
+            "note",
+            added
+                .data
+                .record
+                .evidence
+                .as_ref()
+                .unwrap()
+                .note
+                .as_deref()
+                .unwrap(),
+            quoted_secret,
+        ),
+        (
+            "stderr",
+            added
+                .data
+                .record
+                .evidence
+                .as_ref()
+                .unwrap()
+                .stderr
+                .as_deref()
+                .unwrap(),
+            secret,
+        ),
+        ("stdout", stdout.as_str(), secret),
+        ("stored", stored.as_str(), secret),
+    ] {
+        assert!(
+            !evidence.contains(forbidden),
+            "redaction failed for {label}"
+        );
+    }
+    let note = added.data.record.evidence.unwrap().note.unwrap();
+    assert!(!note.contains(header_secret));
+    assert_eq!(note.matches("<redacted>").count(), 2);
+    assert!(note.contains(url));
+    assert!(note.contains(path));
+}
+
+#[cfg(unix)]
+#[test]
+fn stderr_file_requires_a_regular_file_and_follows_regular_file_symlinks() {
+    use std::os::unix::fs::symlink;
+
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let target = temp.path().join("stderr.txt");
+    let link = temp.path().join("stderr-link.txt");
+    std::fs::write(&target, "ordinary stderr").unwrap();
+    symlink(&target, &link).unwrap();
+    let added: SuccessEnvelope<AddData> = success(
+        &command()
+            .arg("--file")
+            .arg(&file)
+            .args(["add", "symlink evidence", "--stderr-file"])
+            .arg(&link)
+            .output()
+            .unwrap(),
+    );
+    assert_eq!(
+        added.data.record.evidence.unwrap().stderr.as_deref(),
+        Some("ordinary stderr")
+    );
+
+    let fifo = temp.path().join("stderr.fifo");
+    let made_fifo = std::process::Command::new("mkfifo")
+        .arg(&fifo)
+        .status()
+        .is_ok_and(|status| status.success());
+    if made_fifo {
+        let rejected = run_file(
+            &file,
+            &[
+                "add",
+                "fifo evidence",
+                "--stderr-file",
+                fifo.to_str().unwrap(),
+            ],
+        );
+        let envelope = error(&rejected, 65, "invalid_input");
+        assert!(envelope.error.message.contains("not a regular file"));
+        assert!(envelope.error.suggested_fix.contains("FIFOs and devices"));
+    }
+}
+
+#[test]
+fn evidence_and_resolve_response_shapes_are_exactly_compatible() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let added = add(&file, "no evidence");
+    let add_json: Value =
+        serde_json::from_slice(&run_file(&file, &["add", "another", "--agent", "tester"]).stdout)
+            .unwrap();
+    let add_data = add_json["data"].as_object().unwrap();
+    assert_eq!(
+        add_data.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["changed", "record"]
+    );
+    let record = add_data["record"].as_object().unwrap();
+    assert_eq!(
+        record.keys().map(String::as_str).collect::<Vec<_>>(),
+        [
+            "agent", "cwd", "id", "kind", "repo", "severity", "tags", "text", "ts"
+        ]
+    );
+    assert!(record.get("evidence").is_none());
+    let log_text = std::fs::read_to_string(&file).unwrap();
+    let log: Value = serde_json::from_str(log_text.lines().next().unwrap()).unwrap();
+    assert_eq!(log, serde_json::to_value(&added.data.record).unwrap());
+
+    let partial: SuccessEnvelope<AddData> = success(&run_file(
+        &file,
+        &[
+            "add",
+            "partial evidence",
+            "--agent",
+            "tester",
+            "--exit",
+            "1",
+        ],
+    ));
+    assert_eq!(
+        serde_json::to_value(partial.data.record.evidence.unwrap())
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        ["exit"]
+    );
+
+    let one: Value =
+        serde_json::from_slice(&run_file(&file, &["resolve", &added.data.record.id]).stdout)
+            .unwrap();
+    assert_eq!(
+        one["data"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        ["changed", "record"]
+    );
+    let second = partial.data.record.id;
+    let third: SuccessEnvelope<AddData> =
+        success(&run_file(&file, &["add", "third", "--agent", "tester"]));
+    let many: Value = serde_json::from_slice(
+        &run_file(&file, &["resolve", &second, &third.data.record.id]).stdout,
+    )
+    .unwrap();
+    assert_eq!(
+        many["data"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        ["changed", "records"]
+    );
 }
 
 #[test]
@@ -171,6 +398,19 @@ fn duplicate_add_warns_that_later_evidence_was_cut() {
         Some("first")
     );
     assert_eq!(std::fs::read_to_string(&file).unwrap().lines().count(), 1);
+
+    let no_evidence: SuccessEnvelope<AddData> = success(
+        &command()
+            .arg("--file")
+            .arg(&file)
+            .args(["add", "same", "--agent", "tester"])
+            .output()
+            .unwrap(),
+    );
+    assert_eq!(
+        no_evidence.meta.warnings,
+        ["duplicate_cut: existing record returned"]
+    );
 }
 
 #[test]
@@ -412,11 +652,8 @@ fn resolve_prefix_errors_and_idempotence_are_structured() {
         "ambiguous_id",
     );
     assert_eq!(
-        envelope.error.details["candidates"]
-            .as_array()
-            .unwrap()
-            .len(),
-        2
+        envelope.error.details["candidates"],
+        json!(["pc_abcd00000000", "pc_abcd11111111"])
     );
 }
 
@@ -453,6 +690,43 @@ fn multi_resolve_is_atomic_deterministic_and_idempotent() {
     );
     assert_eq!(std::fs::read_to_string(&file).unwrap().lines().count(), 4);
 
+    let events: Vec<Value> = std::fs::read_to_string(&file)
+        .unwrap()
+        .lines()
+        .skip(2)
+        .map(serde_json::from_str)
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(
+        events
+            .iter()
+            .map(|event| event["kind"].as_str())
+            .collect::<Vec<_>>(),
+        [Some("resolve"), Some("resolve")]
+    );
+    assert_eq!(
+        events
+            .iter()
+            .map(|event| event["id"].as_str())
+            .collect::<Vec<_>>(),
+        expected
+            .iter()
+            .map(|id| Some(id.as_str()))
+            .collect::<Vec<_>>()
+    );
+    for event in &events {
+        assert_eq!(event["agent"], "fixer");
+        assert_eq!(event["note"], "batch");
+    }
+    let listed: SuccessEnvelope<ListData> =
+        success(&run_file(&file, &["list", "--status", "resolved"]));
+    assert_eq!(listed.data.items.len(), 2);
+    assert!(listed.data.items.iter().all(|item| {
+        item.resolution.as_ref().is_some_and(|resolution| {
+            resolution.agent == "fixer" && resolution.note.as_deref() == Some("batch")
+        })
+    }));
+
     let duplicate: SuccessEnvelope<ResolveManyData> = success(&run_file(
         &file,
         &["resolve", &first, &first, "--agent", "fixer"],
@@ -461,6 +735,47 @@ fn multi_resolve_is_atomic_deterministic_and_idempotent() {
     assert_eq!(duplicate.data.records.len(), 1);
     assert_eq!(duplicate.meta.warnings, ["already resolved"]);
     assert_eq!(std::fs::read_to_string(&file).unwrap().lines().count(), 4);
+}
+
+#[test]
+fn multi_resolve_heals_a_torn_tail_and_keeps_first_resolution() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let first = add(&file, "first torn batch").data.record.id;
+    let second = add(&file, "second torn batch").data.record.id;
+    let mut torn = OpenOptions::new().append(true).open(&file).unwrap();
+    write!(torn, "{{\"kind\":").unwrap();
+    drop(torn);
+    let _: SuccessEnvelope<ResolveManyData> = success(&run_file(
+        &file,
+        &[
+            "resolve", &second, &first, "--agent", "fixer", "--note", "first",
+        ],
+    ));
+    let log = std::fs::read_to_string(&file).unwrap();
+    assert!(log.ends_with('\n'));
+    let listed: SuccessEnvelope<ListData> =
+        success(&run_file(&file, &["list", "--status", "resolved"]));
+    assert_eq!(listed.data.items.len(), 2);
+    assert!(listed.data.items.iter().all(|item| {
+        item.resolution
+            .as_ref()
+            .is_some_and(|resolution| resolution.note.as_deref() == Some("first"))
+    }));
+    let first_resolution = json!({"kind":"resolve","id":first,"ts":"2026-07-09T18:30:00.123Z","agent":"later","note":"later"});
+    std::fs::write(&file, format!("{log}{first_resolution}\n")).unwrap();
+    let listed: SuccessEnvelope<ListData> =
+        success(&run_file(&file, &["list", "--status", "resolved"]));
+    let first_item = listed
+        .data
+        .items
+        .iter()
+        .find(|item| item.cut.id == first)
+        .unwrap();
+    assert_eq!(
+        first_item.resolution.as_ref().unwrap().note.as_deref(),
+        Some("first")
+    );
 }
 
 #[test]

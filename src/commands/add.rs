@@ -9,6 +9,8 @@ use std::fs::File;
 use std::io::{IsTerminal, Read};
 use std::path::PathBuf;
 
+const STDERR_INPUT_LIMIT: u64 = 1024 * 1024;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AddData {
     pub changed: bool,
@@ -80,6 +82,7 @@ pub fn run(args: AddArgs, file: Option<PathBuf>, pretty: bool, now: Timestamp) -
         );
     }
 
+    let supplied_evidence = record.evidence.is_some();
     let (changed, record) = if args.dry_run {
         (false, record)
     } else {
@@ -99,8 +102,14 @@ pub fn run(args: AddArgs, file: Option<PathBuf>, pretty: bool, now: Timestamp) -
     if args.dry_run {
         warnings.push("dry run; no record appended".into());
     } else if !changed {
-        warnings
-            .push("duplicate_cut: existing record returned; later evidence was not stored".into());
+        warnings.push(
+            if supplied_evidence {
+                "duplicate_cut: existing record returned; later evidence was not stored"
+            } else {
+                "duplicate_cut: existing record returned"
+            }
+            .into(),
+        );
     }
     let mut meta = Meta::new();
     meta.file = Some(resolved.path.to_string_lossy().into_owned());
@@ -126,24 +135,51 @@ fn build_evidence(args: &AddArgs) -> AppResult<Option<Evidence>> {
 }
 
 fn read_stderr(path: &std::path::Path) -> AppResult<String> {
-    let mut file = File::open(path).map_err(|error| AppError::from_log_open(error, path))?;
+    // `metadata` follows a symlink, so a symlink to a regular file is accepted and a
+    // symlink to a FIFO/device is rejected before opening the target for reading.
+    let metadata =
+        std::fs::metadata(path).map_err(|error| AppError::from_evidence_file(error, path))?;
+    if !metadata.is_file() {
+        return Err(AppError::invalid_input(
+            format!(
+                "stderr evidence path is not a regular file: {}",
+                path.display()
+            ),
+            "Pass a regular UTF-8 file to --stderr-file PATH; FIFOs and devices are not accepted.",
+        ));
+    }
+    if metadata.len() > STDERR_INPUT_LIMIT {
+        return Err(AppError::invalid_input(
+            format!(
+                "stderr evidence file exceeds the {}-byte read limit: {}",
+                STDERR_INPUT_LIMIT,
+                path.display()
+            ),
+            "Pass a smaller stderr file to --stderr-file PATH; stored sanitized stderr is capped at 4096 bytes.",
+        ));
+    }
+    let mut file = File::open(path).map_err(|error| AppError::from_evidence_file(error, path))?;
     let mut bytes = Vec::new();
     file.by_ref()
-        .take(4096 + 4)
+        .take(STDERR_INPUT_LIMIT + 1)
         .read_to_end(&mut bytes)
-        .map_err(|error| AppError::from_io(error, path))?;
-    match String::from_utf8(bytes) {
-        Ok(value) => Ok(value),
-        Err(error) if error.utf8_error().valid_up_to() >= 4096 => {
-            let valid = error.utf8_error().valid_up_to();
-            let bytes = error.into_bytes();
-            Ok(String::from_utf8(bytes[..valid].to_vec()).expect("valid prefix"))
-        }
-        Err(_) => Err(AppError::invalid_input(
+        .map_err(|error| AppError::from_evidence_file(error, path))?;
+    if bytes.len() > STDERR_INPUT_LIMIT as usize {
+        return Err(AppError::invalid_input(
+            format!(
+                "stderr evidence file exceeds the {}-byte read limit: {}",
+                STDERR_INPUT_LIMIT,
+                path.display()
+            ),
+            "Pass a smaller stderr file to --stderr-file PATH; stored sanitized stderr is capped at 4096 bytes.",
+        ));
+    }
+    String::from_utf8(bytes).map_err(|_| {
+        AppError::invalid_input(
             format!("stderr file is not valid UTF-8: {}", path.display()),
             "Pass a UTF-8 stderr file with --stderr-file PATH.",
-        )),
-    }
+        )
+    })
 }
 
 fn redact_and_truncate(value: &str, max_bytes: usize) -> String {
@@ -163,48 +199,32 @@ fn truncate_utf8(value: &str, max_bytes: usize) -> String {
 
 fn redact_evidence(input: &str) -> String {
     let mut spans = Vec::new();
-    let keywords = [
-        "authorization",
-        "password",
-        "secret",
-        "token",
-        "bearer",
-        "key",
-    ];
     for (start, _) in input.char_indices() {
-        let Some(keyword) = keywords.iter().find(|keyword| {
-            input[start..].len() >= keyword.len()
-                && input
-                    .get(start..start + keyword.len())
-                    .is_some_and(|candidate| candidate.eq_ignore_ascii_case(keyword))
-                && boundary_before(input, start)
-                && boundary_after(input, start + keyword.len())
-        }) else {
+        let Some((end, key, option)) = sensitive_key(input, start) else {
             continue;
         };
-        let end = start + keyword.len();
         let mut value_start = skip_spaces(input, end);
         let assignment = input
-            .as_bytes()
-            .get(value_start)
-            .is_some_and(|byte| *byte == b'=' || *byte == b':');
+            .get(value_start..)
+            .and_then(|rest| rest.chars().next())
+            .is_some_and(|character| character == '=' || character == ':');
         if assignment {
-            value_start = skip_spaces(input, value_start + 1);
-        } else if *keyword != "bearer"
-            && input
-                .get(start.saturating_sub(2)..start)
-                .is_none_or(|prefix| prefix != "--")
-        {
+            value_start += input[value_start..]
+                .chars()
+                .next()
+                .expect("checked above")
+                .len_utf8();
+            value_start = skip_spaces(input, value_start);
+        } else if !option && key != "bearer" {
             continue;
         }
         value_start = skip_spaces(input, value_start);
-        if input[value_start..]
-            .to_ascii_lowercase()
-            .starts_with("bearer ")
-        {
-            value_start = skip_spaces(input, value_start + "bearer".len());
-        }
-        if let Some(span) = value_span(input, value_start) {
+        let span = if key == "authorization" && assignment {
+            authorization_value_span(input, value_start)
+        } else {
+            value_span(input, value_start)
+        };
+        if let Some(span) = span {
             spans.push(span);
         }
     }
@@ -233,25 +253,56 @@ fn redact_evidence(input: &str) -> String {
     output
 }
 
-fn boundary_before(input: &str, start: usize) -> bool {
-    input[..start]
+fn sensitive_key(input: &str, start: usize) -> Option<(usize, &'static str, bool)> {
+    let prior = input[..start].chars().next_back();
+    if prior.is_some_and(|character| {
+        character.is_alphanumeric() || character == '_' || character == '-'
+    }) {
+        return None;
+    }
+    let rest = &input[start..];
+    let (raw, end, option) = if let Some(rest) = rest.strip_prefix("--") {
+        let length = rest
+            .char_indices()
+            .find(|(_, character)| {
+                !character.is_alphanumeric() && *character != '_' && *character != '-'
+            })
+            .map_or(rest.len(), |(index, _)| index);
+        (&rest[..length], start + 2 + length, true)
+    } else if let Some(stripped) = rest.strip_prefix('"') {
+        let close = stripped.find('"')?;
+        (&stripped[..close], start + close + 2, false)
+    } else {
+        let length = rest
+            .char_indices()
+            .find(|(_, character)| {
+                !character.is_alphanumeric() && *character != '_' && *character != '-'
+            })
+            .map_or(rest.len(), |(index, _)| index);
+        (&rest[..length], start + length, false)
+    };
+    let normalized = raw
         .chars()
-        .next_back()
-        .is_none_or(|character| !character.is_ascii_alphanumeric())
-}
-
-fn boundary_after(input: &str, end: usize) -> bool {
-    input[end..]
-        .chars()
-        .next()
-        .is_none_or(|character| !character.is_ascii_alphanumeric())
+        .filter(|character| *character != '_' && *character != '-')
+        .flat_map(char::to_lowercase)
+        .collect::<String>();
+    let key = match normalized.as_str() {
+        "authorization" => "authorization",
+        "password" => "password",
+        "secret" => "secret",
+        "token" => "token",
+        "bearer" => "bearer",
+        "key" | "apikey" => "key",
+        _ => return None,
+    };
+    Some((end, key, option))
 }
 
 fn skip_spaces(input: &str, mut index: usize) -> usize {
     while input[index..]
         .chars()
         .next()
-        .is_some_and(|character| character.is_ascii_whitespace())
+        .is_some_and(char::is_whitespace)
     {
         index += input[index..]
             .chars()
@@ -278,6 +329,20 @@ fn value_span(input: &str, start: usize) -> Option<(usize, usize)> {
     (start < end).then_some((start, end))
 }
 
+fn authorization_value_span(input: &str, start: usize) -> Option<(usize, usize)> {
+    let scheme_end = input[start..]
+        .char_indices()
+        .find(|(_, character)| character.is_whitespace())
+        .map_or(input.len(), |(offset, _)| start + offset);
+    let scheme = &input[start..scheme_end];
+    if scheme.eq_ignore_ascii_case("basic") || scheme.eq_ignore_ascii_case("bearer") {
+        let value_start = skip_spaces(input, scheme_end);
+        let (_, value_end) = value_span(input, value_start)?;
+        return Some((start, value_end));
+    }
+    value_span(input, start)
+}
+
 fn high_entropy_spans(input: &str) -> Vec<(usize, usize)> {
     let mut spans = Vec::new();
     let mut start = None;
@@ -285,7 +350,7 @@ fn high_entropy_spans(input: &str) -> Vec<(usize, usize)> {
         .char_indices()
         .chain(std::iter::once((input.len(), ' ')))
     {
-        let token_character = character.is_ascii_alphanumeric() || "_-./+=".contains(character);
+        let token_character = character.is_ascii_alphanumeric() || "_-./+=\\".contains(character);
         if token_character && start.is_none() {
             start = Some(index);
         } else if !token_character && let Some(token_start) = start.take() {
@@ -303,7 +368,9 @@ fn high_entropy_spans(input: &str) -> Vec<(usize, usize)> {
             .into_iter()
             .filter(|present| *present)
             .count();
-            if token.len() >= 24
+            if !token.contains('/')
+                && !token.contains('\\')
+                && token.len() >= 24
                 && unique >= 12
                 && (categories >= 3
                     || (categories >= 2 && token.bytes().any(|byte| byte.is_ascii_digit())))
@@ -342,4 +409,29 @@ fn read_text(text: Option<String>) -> AppResult<String> {
         text.pop();
     }
     Ok(text)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{redact_evidence, sensitive_key};
+
+    #[test]
+    fn redacts_quoted_json_keys_with_unicode_whitespace() {
+        let value = "quoted-secret-value";
+        let header = "header-secret-value";
+        assert_eq!(
+            sensitive_key("\"api_key\"\u{2003}:\u{2002}value", 0),
+            Some((9, "key", false))
+        );
+        let input = format!("\"api_key\"\u{2003}:\u{2002}\"{value}\"");
+        assert_eq!(
+            redact_evidence(&input),
+            "\"api_key\"\u{2003}:\u{2002}\"<redacted>\""
+        );
+        let output = redact_evidence(&format!(
+            "\"api_key\"\u{2003}:\u{2002}\"{value}\" authorization\u{2003}:\u{2002}Bearer {header} url=https://example.test/a/b"
+        ));
+        assert!(!output.contains(value));
+        assert!(!output.contains(header));
+    }
 }

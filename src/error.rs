@@ -173,6 +173,35 @@ impl AppError {
         }
     }
 
+    pub fn from_evidence_file(error: std::io::Error, path: &std::path::Path) -> Self {
+        match error.kind() {
+            std::io::ErrorKind::NotFound => Self::new(
+                "not_found",
+                format!("stderr evidence file not found: {}", path.display()),
+                false,
+                "Pass an existing regular UTF-8 file to --stderr-file PATH.",
+            ),
+            std::io::ErrorKind::PermissionDenied => Self::new(
+                "permission_denied",
+                format!(
+                    "permission denied reading stderr evidence file {}: {error}",
+                    path.display()
+                ),
+                false,
+                "Grant read permission to the stderr evidence file or pass a readable --stderr-file PATH.",
+            ),
+            _ => Self::new(
+                "io_error",
+                format!(
+                    "I/O error reading stderr evidence file {}: {error}",
+                    path.display()
+                ),
+                false,
+                "Check that --stderr-file PATH is a readable regular file, then retry.",
+            ),
+        }
+    }
+
     fn new(
         code: &'static str,
         message: impl Into<String>,

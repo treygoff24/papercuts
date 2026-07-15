@@ -483,3 +483,39 @@ Outcome and verification: Probe ran under `/bin/zsh` with no Bash version and BS
 Performance observations: 24s. Accurate and concise.
 
 Routing assessment: Reuse after any Delegate-wide launcher/environment change; current Cursor/Grok command shell remains deferred. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 2 adversarial review
+
+Command and run: `delegate --group papercuts-wave2-review codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave2-review-sol.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/read-only; run handle: `codex-24`.
+
+Task and expectation: Review Wave 2 against the governing design and remediation plan, attacking evidence redaction and truncation boundaries, append-only persistence, multi-resolve atomicity, compatibility shapes, and test adequacy.
+
+Outcome and verification: Found two redaction blockers plus test and diagnostic gaps. The highest-confidence issues were raw-input truncation before redaction, incomplete Authorization/assignment handling, persistence tests that did not prove the appended resolve records fold correctly, and compatibility assertions permissive of extra fields. No files changed.
+
+Performance observations: 8m36s. Strong adversarial trust-boundary analysis with a concrete boundary-shift reproducer and useful mutation-test framing. Some proposed fault-injection coverage may be broader than the minimum contract and should be adjudicated rather than copied wholesale.
+
+Routing assessment: Use Sol high as the primary closure gate for append-only credential-adjacent Rust changes. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 2 adversarial review
+
+Command and run: `delegate --group papercuts-wave2-review cursor safe --prompt-file /tmp/papercuts-wave2-review-grok.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/read-only; run handle: `cursor-6`.
+
+Task and expectation: Independently review Wave 2 for specification drift, security boundary failures, multi-resolve atomicity, output compatibility, and missing black-box tests.
+
+Outcome and verification: Confirmed the stderr-file diagnostic mismatch, Authorization Basic leak, boundary-straddling token leak, and presence-only redaction tests. It found the core ID, first-wins, batch append, arity-shape, and resolution-warning behavior otherwise aligned with the contract. No files changed.
+
+Performance observations: 2m51s. Fast, well-prioritized corroboration. It clearly separated core clean behavior from remediation-worthy gaps and flagged lower-confidence residual limitations separately.
+
+Routing assessment: Use Grok as a rapid independent corroboration lane after Sol; require coordinator severity adjudication. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 2 security and compatibility fixes
+
+Command and run: `delegate --group papercuts-wave2-fix codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2-fix.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place; run handle: `codex-25`.
+
+Task and expectation: Fix the substantiated Sol/Grok findings around evidence redaction and bounded reading, non-regular evidence files, evidence-specific errors, persisted multi-resolve proof, and exact compatibility shapes without expanding public error codes.
+
+Outcome and verification: Reworked evidence reading to reject non-regular or over-1-MiB inputs, redact the complete bounded input before UTF-8-safe 4096-byte storage, handle reviewed authorization/Unicode/JSON/CLI-option cases, preserve obvious paths and URLs, improve evidence-file diagnostics, narrow duplicate warnings, and substantially strengthen black-box persistence and compatibility tests. Terra reported release build, clippy, fmt, diff check, and five full test passes green.
+
+Performance observations: 9m51s. Comprehensive and responsive to adversarial findings. The patch is larger than ideal because the table-driven trust-boundary tests dominate the diff; coordinator review and a fresh dual-review closure gate remain necessary.
+
+Routing assessment: Terra high is effective for security-focused Rust repair passes after specific review findings. Confidence: high.
