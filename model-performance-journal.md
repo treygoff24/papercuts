@@ -328,6 +328,30 @@ Performance observations: 2m56s. Fast, correctly bounded, no credential inspecti
 
 Routing assessment: Terra high is the preferred closeout lane for small trust-boundary shell corrections. Confidence: high.
 
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 1 Claude profile settings
+
+Command and run: `delegate --group papercuts-wave1-profile-fix codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave1-profile-fix.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place with profile-settings ownership; run handle: `codex-18`.
+
+Task and expectation: Apply the two shell environment keys to the work and personal Claude profile settings because Delegate launches through `CLAUDE_CONFIG_DIR=~/.claude-work`.
+
+Outcome and verification: Added only SHELL and BASH_ENV to both profile settings, preserved modes, retained exact private backups, and updated the staged note. Coordinator confirmed all three Claude settings profiles now carry identical values.
+
+Performance observations: 1m53s. Fast, exact semantic-diff discipline, no launcher or credential scope creep.
+
+Routing assessment: Use Terra high for narrow profile/config propagation across coupled copies. Confidence: high.
+
+## 2026-07-15 - Claude via claude - Wave 1 profile reprobe
+
+Command and run: `delegate --group papercuts-wave1-claude-reprobe claude safe --reasoning-effort low --prompt-file /tmp/papercuts-shell-probe.md`; alias/variant/effort: default Claude, low; mode/isolation: safe/temporary worktree; run handle: `claude-2`.
+
+Task and expectation: Repeat the identity probe after adding SHELL/BASH_ENV to the active work profile.
+
+Outcome and verification: The actual tool shell moved to Homebrew Bash 5.3, proving the work-profile settings are active. Sed and awk still resolved to BSD `/usr/bin`, so BASH_ENV did not establish the GNU layer and `accepted=no`. No edits.
+
+Performance observations: 21s. This cleanly isolated a partial mechanism: SHELL propagation works, BASH_ENV/PATH behavior does not.
+
+Routing assessment: Reuse after the launcher explicitly sources agent.sh; do not claim acceptance from Bash identity alone. Confidence: high.
+
 ## 2026-07-15 - Claude via claude - Wave 1 shell acceptance probe
 
 Command and run: `delegate --group papercuts-wave1-accept claude safe --reasoning-effort low --prompt-file /tmp/papercuts-shell-probe.md`; alias/variant/effort: default Claude, low; mode/isolation: safe/temporary worktree; run handle: `claude-1`.
