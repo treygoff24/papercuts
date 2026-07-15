@@ -151,6 +151,135 @@ fn add_evidence_flags_are_redacted_bounded_and_optional_fields_are_omitted() {
 }
 
 #[test]
+fn padded_standalone_base64_is_redacted_in_stdout_and_jsonl() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let tokens = [
+        "AbCdEf0123456789GhIjKlMnOpQrStUvWxYz+/=",
+        "ZyXwVu9876543210TsRqPoNmLkJiHgFeDcBa+/==",
+    ];
+    for (index, token) in tokens.iter().enumerate() {
+        let text = format!("padded token {index}");
+        let output = command()
+            .arg("--file")
+            .arg(&file)
+            .args(["add", &text, "--agent", "tester", "--evidence"])
+            .arg(token)
+            .output()
+            .unwrap();
+        let added: SuccessEnvelope<AddData> = success(&output);
+        assert_eq!(
+            added.data.record.evidence.unwrap().note.as_deref(),
+            Some("<redacted>")
+        );
+        let stdout = String::from_utf8(output.stdout).unwrap();
+        assert!(!stdout.contains(token));
+    }
+
+    let lines: Vec<Value> = std::fs::read_to_string(&file)
+        .unwrap()
+        .lines()
+        .map(serde_json::from_str)
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(lines.len(), tokens.len());
+    for (line, token) in lines.iter().zip(tokens) {
+        assert_eq!(line["evidence"]["note"], "<redacted>");
+        assert!(!line.to_string().contains(token));
+    }
+
+    let generic = "CONFIG_TOKEN=AbCdEf0123456789GhIjKlMnOpQrStUvWxYz+/";
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args([
+            "add",
+            "generic assignment",
+            "--agent",
+            "tester",
+            "--evidence",
+        ])
+        .arg(generic)
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    assert_eq!(
+        added.data.record.evidence.unwrap().note.as_deref(),
+        Some("CONFIG_TOKEN=<redacted>")
+    );
+}
+
+#[test]
+fn padded_base64_crossing_stderr_storage_boundary_leaves_no_prefix() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let stderr_file = temp.path().join("stderr.txt");
+    let token = "AbCdEf0123456789GhIjKlMnOpQrStUvWxYz+/==";
+    std::fs::write(&stderr_file, format!("{} {token}", "p".repeat(4085))).unwrap();
+
+    let added: SuccessEnvelope<AddData> = success(
+        &command()
+            .arg("--file")
+            .arg(&file)
+            .args([
+                "add",
+                "boundary token",
+                "--agent",
+                "tester",
+                "--stderr-file",
+            ])
+            .arg(&stderr_file)
+            .output()
+            .unwrap(),
+    );
+    let expected = format!("{} <redacted>", "p".repeat(4085));
+    assert_eq!(
+        added.data.record.evidence.unwrap().stderr.as_deref(),
+        Some(expected.as_str())
+    );
+}
+
+#[test]
+fn leading_hyphen_evidence_and_resolve_note_work_through_binary() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let added: SuccessEnvelope<AddData> = success(
+        &command()
+            .arg("--file")
+            .arg(&file)
+            .args(["add", "hyphen evidence", "--agent", "tester", "--cmd"])
+            .arg("--tool --flag with spaces")
+            .args(["--evidence"])
+            .arg("--detail with spaces")
+            .output()
+            .unwrap(),
+    );
+    let evidence = added.data.record.evidence.unwrap();
+    assert_eq!(evidence.cmd.as_deref(), Some("--tool --flag with spaces"));
+    assert_eq!(evidence.note.as_deref(), Some("--detail with spaces"));
+
+    let resolved: SuccessEnvelope<ResolveData> = success(
+        &command()
+            .arg("--file")
+            .arg(&file)
+            .args([
+                "resolve",
+                &added.data.record.id,
+                "--agent",
+                "fixer",
+                "--note",
+            ])
+            .arg("--retry after timeout")
+            .output()
+            .unwrap(),
+    );
+    assert_eq!(
+        resolved.data.record.resolution.unwrap().note.as_deref(),
+        Some("--retry after timeout")
+    );
+}
+
+#[test]
 fn evidence_redaction_handles_boundary_headers_unicode_json_and_cli_options() {
     let temp = TempDir::new().unwrap();
     let file = temp.path().join("cuts.jsonl");
@@ -603,6 +732,37 @@ fn evidence_and_resolve_response_shapes_are_exactly_compatible() {
             .collect::<Vec<_>>(),
         ["changed", "record"]
     );
+    let one_record = one["data"]["record"].as_object().unwrap();
+    assert_eq!(
+        one_record.keys().map(String::as_str).collect::<Vec<_>>(),
+        [
+            "agent",
+            "cwd",
+            "id",
+            "kind",
+            "repo",
+            "resolution",
+            "severity",
+            "status",
+            "tags",
+            "text",
+            "ts"
+        ]
+    );
+    assert_eq!(one_record["kind"], "cut");
+    assert_eq!(one_record["id"], added.data.record.id);
+    assert_eq!(one_record["ts"], "2026-07-09T18:30:00.123Z");
+    assert_eq!(one_record["agent"], "tester");
+    assert_eq!(one_record["text"], "no evidence");
+    assert_eq!(one_record["tags"], json!([]));
+    assert_eq!(one_record["severity"], "minor");
+    assert_eq!(one_record["cwd"], added.data.record.cwd);
+    assert_eq!(one_record["repo"], json!(added.data.record.repo));
+    assert_eq!(one_record["status"], "resolved");
+    assert_eq!(
+        one_record["resolution"],
+        json!({"agent":"unknown","note":null,"ts":"2026-07-09T18:30:00.123Z"})
+    );
     let second = partial.data.record.id;
     let third: SuccessEnvelope<AddData> =
         success(&run_file(&file, &["add", "third", "--agent", "tester"]));
@@ -619,6 +779,68 @@ fn evidence_and_resolve_response_shapes_are_exactly_compatible() {
             .collect::<Vec<_>>(),
         ["changed", "records"]
     );
+    let records = many["data"]["records"].as_array().unwrap();
+    assert_eq!(records.len(), 2);
+    for record in records {
+        let record = record.as_object().unwrap();
+        assert_eq!(record["kind"], "cut");
+        assert_eq!(record["status"], "resolved");
+        assert_eq!(record["severity"], "minor");
+        assert_eq!(record["tags"], json!([]));
+        assert_eq!(record["ts"], "2026-07-09T18:30:00.123Z");
+        assert_eq!(record["agent"], "tester");
+        assert_eq!(record["resolution"]["ts"], "2026-07-09T18:30:00.123Z");
+        assert_eq!(record["resolution"]["agent"], "unknown");
+        assert_eq!(record["resolution"]["note"], Value::Null);
+        match record["id"].as_str().unwrap() {
+            id if id == second => {
+                assert_eq!(
+                    record.keys().map(String::as_str).collect::<Vec<_>>(),
+                    [
+                        "agent",
+                        "cwd",
+                        "evidence",
+                        "id",
+                        "kind",
+                        "repo",
+                        "resolution",
+                        "severity",
+                        "status",
+                        "tags",
+                        "text",
+                        "ts"
+                    ]
+                );
+                assert_eq!(record["text"], "partial evidence");
+                assert_eq!(record["cwd"], partial.data.record.cwd);
+                assert_eq!(record["repo"], json!(partial.data.record.repo));
+                assert_eq!(record["evidence"], json!({"exit": 1}));
+            }
+            id if id == third.data.record.id => {
+                assert_eq!(
+                    record.keys().map(String::as_str).collect::<Vec<_>>(),
+                    [
+                        "agent",
+                        "cwd",
+                        "id",
+                        "kind",
+                        "repo",
+                        "resolution",
+                        "severity",
+                        "status",
+                        "tags",
+                        "text",
+                        "ts"
+                    ]
+                );
+                assert_eq!(record["text"], "third");
+                assert_eq!(record["cwd"], third.data.record.cwd);
+                assert_eq!(record["repo"], json!(third.data.record.repo));
+                assert!(!record.contains_key("evidence"));
+            }
+            id => panic!("unexpected resolved record {id}"),
+        }
+    }
 }
 
 #[test]
@@ -730,7 +952,7 @@ fn every_command_success_envelope_deserializes() {
     );
     assert_eq!(
         schema.data["commands"]["resolve"]["output"]["two_or_more"],
-        "{changed,records:[...]}; IDs are canonicalized, sorted, and duplicate inputs collapse"
+        "{changed,records:[...]}; IDs are canonicalized, sorted, and duplicate inputs collapse; mixed already-resolved IDs warn with a sorted count/list"
     );
 
     let expected = serde_json::to_value(exit_code_map()).unwrap();
@@ -996,6 +1218,33 @@ fn multi_resolve_is_atomic_deterministic_and_idempotent() {
     assert_eq!(duplicate.data.records.len(), 1);
     assert_eq!(duplicate.meta.warnings, ["already resolved"]);
     assert_eq!(std::fs::read_to_string(&file).unwrap().lines().count(), 4);
+}
+
+#[test]
+fn mixed_multi_resolve_warns_with_sorted_already_resolved_ids() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let first = add(&file, "mixed first").data.record.id;
+    let second = add(&file, "mixed second").data.record.id;
+    let _: SuccessEnvelope<ResolveData> =
+        success(&run_file(&file, &["resolve", &first, "--agent", "fixer"]));
+
+    let mixed: SuccessEnvelope<ResolveManyData> = success(&run_file(
+        &file,
+        &["resolve", &second, &first, "--agent", "fixer"],
+    ));
+    assert!(mixed.data.changed);
+    assert_eq!(
+        mixed.meta.warnings,
+        [format!("already resolved: 1 ID ({first})")]
+    );
+
+    let all: SuccessEnvelope<ResolveManyData> = success(&run_file(
+        &file,
+        &["resolve", &first, &second, "--agent", "fixer"],
+    ));
+    assert!(!all.data.changed);
+    assert_eq!(all.meta.warnings, ["already resolved"]);
 }
 
 #[test]

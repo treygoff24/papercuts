@@ -431,11 +431,12 @@ fn high_entropy_spans(input: &str) -> Vec<(usize, usize)> {
             let token = &input[token_start..index];
             let (value_start, value) = token
                 .split_once('=')
-                .filter(|(name, _)| {
+                .filter(|(name, value)| {
                     !name.is_empty()
                         && name.bytes().all(|byte| {
                             byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-'
                         })
+                        && value.bytes().any(|byte| byte != b'=')
                 })
                 .map_or((token_start, token), |(name, value)| {
                     (token_start + name.len() + 1, value)

@@ -47,7 +47,12 @@ pub struct AddArgs {
     pub tags: Vec<String>,
     #[arg(long, value_enum, default_value_t = Severity::Minor)]
     pub severity: Severity,
-    #[arg(long, value_name = "TEXT", help = "Command that failed")]
+    #[arg(
+        long,
+        allow_hyphen_values = true,
+        value_name = "TEXT",
+        help = "Command that failed"
+    )]
     pub cmd: Option<String>,
     #[arg(long = "exit", value_name = "N", help = "Command exit status")]
     pub exit_code: Option<i32>,
@@ -57,7 +62,12 @@ pub struct AddArgs {
         help = "Read stderr from PATH at filing time"
     )]
     pub stderr_file: Option<PathBuf>,
-    #[arg(long, value_name = "TEXT", help = "Additional evidence or filing note")]
+    #[arg(
+        long,
+        allow_hyphen_values = true,
+        value_name = "TEXT",
+        help = "Additional evidence or filing note"
+    )]
     pub evidence: Option<String>,
     #[arg(long)]
     pub dry_run: bool,
@@ -90,7 +100,7 @@ pub struct ResolveArgs {
         help = "One or more IDs or unique prefixes"
     )]
     pub ids: Vec<String>,
-    #[arg(long)]
+    #[arg(long, allow_hyphen_values = true)]
     pub note: Option<String>,
     #[arg(long)]
     pub agent: Option<String>,
@@ -163,5 +173,43 @@ mod tests {
         ] {
             assert!(Cli::try_parse_from(args).is_ok());
         }
+    }
+
+    #[test]
+    fn parser_accepts_leading_hyphen_text_values_without_swallowing_following_options() {
+        let cli = Cli::try_parse_from([
+            "papercuts",
+            "add",
+            "text",
+            "--cmd",
+            "-tool arg",
+            "--evidence",
+            "--detail note",
+            "--agent",
+            "tester",
+        ])
+        .unwrap();
+        let Command::Add(args) = cli.command else {
+            panic!("expected add")
+        };
+        assert_eq!(args.cmd.as_deref(), Some("-tool arg"));
+        assert_eq!(args.evidence.as_deref(), Some("--detail note"));
+        assert_eq!(args.agent.as_deref(), Some("tester"));
+
+        let cli = Cli::try_parse_from([
+            "papercuts",
+            "resolve",
+            "abcd1234",
+            "--note",
+            "--retry after timeout",
+            "--agent",
+            "fixer",
+        ])
+        .unwrap();
+        let Command::Resolve(args) = cli.command else {
+            panic!("expected resolve")
+        };
+        assert_eq!(args.note.as_deref(), Some("--retry after timeout"));
+        assert_eq!(args.agent.as_deref(), Some("fixer"));
     }
 }

@@ -45,7 +45,7 @@ pub fn run(
     let ts = format_timestamp(now);
     let note = args.note;
     let many = args.ids.len() > 1;
-    let action = |log: &mut std::fs::File| -> AppResult<(bool, bool, Vec<ListItem>)> {
+    let action = |log: &mut std::fs::File| -> AppResult<(bool, Vec<String>, Vec<ListItem>)> {
         let bytes = store::read_bytes(log, &resolved.path)?;
         let folded = store::fold_bytes(&bytes);
         let mut ids = prefixes
@@ -67,7 +67,12 @@ pub fn run(
                     })
             })
             .collect::<AppResult<Vec<_>>>()?;
-        let already_resolved = items.iter().any(|item| item.status == ItemStatus::Resolved);
+        let already_resolved_ids: Vec<_> = ids
+            .iter()
+            .zip(&items)
+            .filter(|(_, item)| item.status == ItemStatus::Resolved)
+            .map(|(id, _)| id.clone())
+            .collect();
         let mut changed = false;
         if !args.dry_run {
             let mut events = Vec::new();
@@ -105,9 +110,9 @@ pub fn run(
                 }
             }
         }
-        Ok((changed, already_resolved, items))
+        Ok((changed, already_resolved_ids, items))
     };
-    let (changed, already_resolved, records) = match if args.dry_run {
+    let (changed, already_resolved_ids, records) = match if args.dry_run {
         store::with_shared(&resolved.path, action)
     } else {
         store::with_exclusive(&resolved.path, false, action)
@@ -124,8 +129,19 @@ pub fn run(
     let mut meta = Meta::new();
     meta.file = Some(resolved.path.to_string_lossy().into_owned());
     meta.agent_source = Some(source.into());
-    if already_resolved {
+    if already_resolved_ids.len() == records.len() {
         meta.warnings.push("already resolved".into());
+    } else if !already_resolved_ids.is_empty() {
+        let noun = if already_resolved_ids.len() == 1 {
+            "ID"
+        } else {
+            "IDs"
+        };
+        meta.warnings.push(format!(
+            "already resolved: {} {noun} ({})",
+            already_resolved_ids.len(),
+            already_resolved_ids.join(", ")
+        ));
     } else if args.dry_run {
         meta.warnings
             .push("dry run; no resolve event appended".into());

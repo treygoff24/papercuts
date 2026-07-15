@@ -603,3 +603,39 @@ Outcome and verification: Implemented escape-aware quote scanning, conservative 
 Performance observations: 7m46s. Strong balance between security and evidence preservation; test coverage expanded materially while production logic stayed localized.
 
 Routing assessment: Terra high is effective for late-stage heuristic hardening when supplied with paired positive and negative cases. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 2 closure review, fourth pass
+
+Command and run: `delegate --group papercuts-wave2-closure4 codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree; run handle: `codex-31`.
+
+Task and expectation: Fourth independent closure review after escape-aware parsing, relative-path preservation, URL-userinfo redaction, and expanded error/atomicity tests.
+
+Outcome and verification: Not clean. Found a padded standalone Base64 bypass caused by interpreting terminal `=` padding as assignment syntax, with a concrete 4096-byte boundary leak mechanism. Also found stale lock-scope wording and insufficient exactness inside nested resolve response records. No files changed.
+
+Performance observations: 7m26s. Continued high-quality adversarial review; the padding/assignment ambiguity is subtle, security-relevant, and directly testable.
+
+Routing assessment: Sol high remains the authoritative security closure lane. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 2 closure review, fourth pass
+
+Command and run: `delegate --group papercuts-wave2-closure4 cursor safe --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree; run handle: `cursor-9`.
+
+Task and expectation: Fourth independent closure review with live probes over the complete Wave 2 range.
+
+Outcome and verification: Found that clap rejects leading-hyphen values for `--cmd`, `--evidence`, and resolve `--note`, despite the documented unrestricted text surface. Also flagged ambiguous mixed multi-resolve warning copy. It did not catch the padded Base64 bypass. No files changed.
+
+Performance observations: 4m. Excellent complementary CLI ergonomics probe; this is exactly the distinct coverage expected from the Grok lane.
+
+Routing assessment: Continue using Grok for CLI contract and live-probe breadth alongside Sol's parser/security depth. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 2 padded Base64 and CLI repair
+
+Command and run: `delegate --group papercuts-wave2-fix4 codex work --model luna --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2-fix4.md`; alias/variant/effort: `luna`, high; mode/isolation: work/in-place; run handle: `codex-32`.
+
+Task and expectation: Fix padded standalone Base64 leakage, leading-hyphen text values, lock-scope wording, nested shape exactness, and mixed multi-resolve warning clarity.
+
+Outcome and verification: Corrected assignment-vs-padding detection, enabled leading-hyphen values on the three text flags, strengthened nested response assertions, clarified lock scope, and made partial no-op warnings deterministic. Luna reported fmt, strict clippy, release build, diff check, targeted tests, and five full all-feature test runs green with 8 unit and 44 CLI tests.
+
+Performance observations: 10m2s. Thorough but relatively slow. It addressed both security and CLI-contract findings in one coherent batch without public error-code expansion.
+
+Routing assessment: Luna high remains effective for mixed parser and interface repair sets when exact cases are supplied. Confidence: high.
