@@ -219,3 +219,39 @@ Outcome and verification: Created the shared POSIX environment and agent shell l
 Performance observations: 13m22s. Strong scope discipline on credential-adjacent files: no values were printed and the original files were retained in a private temp backup. It attempted the minimum empirical Claude and Delegate probes, reported their evidence gaps honestly, and filed a Codex papercut when no supported knob was found.
 
 Routing assessment: Terra high is suitable for live configuration migrations with exact preservation constraints, provided the coordinator independently reviews the retained backup and owns external-harness acceptance. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 1 private-bundle review
+
+Command and run: `delegate --cwd /tmp/papercuts-wave1-review.BCpo6K --group papercuts-wave1-review codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave1-review.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/private directory copy; run handle: `codex-1` in the bundle workspace.
+
+Task and expectation: Compare retained originals to current credential-adjacent shell/config files without emitting values, then attack semantic preservation and dual-path GNU/BSD behavior.
+
+Outcome and verification: Found two acceptance blockers, three majors, and one minor. Concrete code defects were global secret scratch variables, broken scalar encoding of BSD `sed -i`, PATH references under unset PATH, and duplicate gnubin entries on repeated BASH_ENV sourcing. It also correctly refused to accept harnesses or unchanged-script fidelity without evidence.
+
+Performance observations: 10m35s. Thorough structural and isolated syntax/PATH analysis with no sensitive output. The broad review spent substantial time validating clean areas, but the resulting findings were precise and actionable.
+
+Routing assessment: Use Sol high for credential-adjacent migration reviews when a private sanitized bundle is available; it preserved the secrecy boundary while probing semantics. Confidence: high.
+
+## 2026-07-15 - grok-4.5 via grok - Wave 1 private-bundle review
+
+Command and run: `delegate --cwd /tmp/papercuts-wave1-review.BCpo6K --group papercuts-wave1-review grok safe --reasoning-effort high --prompt-file /tmp/papercuts-wave1-review.md`; alias/variant/effort: `grok-4.5`, high; mode/isolation: safe/private directory copy; run handle: `grok-1` in the bundle workspace.
+
+Task and expectation: Independent no-shell review of environment fidelity, swept scripts, and acceptance evidence.
+
+Outcome and verification: Converged on the broken BSD sed branch and secret scratch-variable leak; uniquely flagged the omitted embedded-captions known hit, non-POSIX file reads, unaudited Context7 source, and permissions evidence. It did not overstate deferred harness acceptance.
+
+Performance observations: 1m36s, much faster than Sol. Static-only limitations were explicit. Findings were concise and complementary rather than redundant.
+
+Routing assessment: Use Grok as the fast static attacker for shell/config migrations, paired with Sol's executable semantic review. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 1 shell review fixes
+
+Command and run: `delegate --group papercuts-wave1-fix codex work --model luna --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave1-fix.md`; alias/variant/effort: `luna`, high; mode/isolation: work/in-place with explicit live home-file ownership; run handle: `codex-14`.
+
+Task and expectation: Fix the bounded shell/config review findings: POSIX loader scratch state, BSD sed arguments, unset/idempotent PATH, portable file reads, Context7 compatibility, and embedded-captions stat.
+
+Outcome and verification: Updated the owned live files and staged note. Reported syntax, ShellCheck, profile/PATH, GNU/BSD sed, stat, Context7, Rust test/fmt/clippy checks green. Coordinator independently confirmed syntax and 0600 modes. It correctly avoided a needless Context7 twin after compatibility testing.
+
+Performance observations: 9m35s. The code fixes were focused and the lane filed its own test-friction papercuts. However, one initial audit command printed a credential value into the private Delegate tool transcript, violating the name/boolean-only brief. The value was not copied into files or the final response; the lane filed major security cut `pc_1a4a792f1777`. This is a material credential-handling failure and creates rotation/trace-cleanup burden.
+
+Routing assessment: Do not use Luna for direct inspection of credential-bearing files unless the prompt forbids content reads and supplies a prebuilt sanitized bundle; use Terra or coordinator-generated structural probes instead. For non-secret shell fixes Luna remains viable. Confidence: high.
