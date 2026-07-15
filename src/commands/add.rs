@@ -213,7 +213,7 @@ fn truncate_utf8(value: &str, max_bytes: usize) -> String {
 fn redact_evidence(input: &str) -> String {
     let mut spans = Vec::new();
     for (start, _) in input.char_indices() {
-        let Some((end, key, option)) = sensitive_key(input, start) else {
+        let Some((end, key, option, sensitive_named_path)) = sensitive_key(input, start) else {
             continue;
         };
         let mut value_start = skip_layout(input, end);
@@ -230,7 +230,9 @@ fn redact_evidence(input: &str) -> String {
         } else {
             value_span(input, value_start)
         };
-        if let Some(span) = span {
+        if let Some(span) = span
+            && !(sensitive_named_path && option && looks_like_path_or_url(&input[span.0..span.1]))
+        {
             spans.push(span);
         }
     }
@@ -289,7 +291,7 @@ fn url_userinfo_spans(input: &str) -> Vec<(usize, usize)> {
     spans
 }
 
-fn sensitive_key(input: &str, start: usize) -> Option<(usize, &'static str, bool)> {
+fn sensitive_key(input: &str, start: usize) -> Option<(usize, &'static str, bool, bool)> {
     let prior = input[..start].chars().next_back();
     if prior.is_some_and(|character| {
         character.is_alphanumeric() || character == '_' || character == '-'
@@ -319,12 +321,9 @@ fn sensitive_key(input: &str, start: usize) -> Option<(usize, &'static str, bool
     };
     let normalized = raw.to_ascii_lowercase();
     let segments = key_segments(raw);
-    if segments.last().is_some_and(|segment| {
+    let sensitive_named_path = segments.last().is_some_and(|segment| {
         segment.eq_ignore_ascii_case("file") || segment.eq_ignore_ascii_case("path")
-    }) && segments.iter().any(|segment| is_sensitive_segment(segment))
-    {
-        return None;
-    }
+    }) && segments.iter().any(|segment| is_sensitive_segment(segment));
     let delimiter_name = raw.contains(['_', '-']);
     let key = match normalized.as_str() {
         "authorization" => "authorization",
@@ -343,14 +342,15 @@ fn sensitive_key(input: &str, start: usize) -> Option<(usize, &'static str, bool
         }
         _ => return None,
     };
-    Some((end, key, option))
+    Some((end, key, option, sensitive_named_path))
 }
 
 fn key_segments(raw: &str) -> Vec<&str> {
     let mut segments = Vec::new();
     let mut start = 0;
     let mut previous = None;
-    for (index, character) in raw.char_indices() {
+    let mut characters = raw.char_indices().peekable();
+    while let Some((index, character)) = characters.next() {
         if matches!(character, '_' | '-') {
             if start < index {
                 segments.push(&raw[start..index]);
@@ -360,7 +360,12 @@ fn key_segments(raw: &str) -> Vec<&str> {
         } else {
             if previous.is_some_and(|previous: char| {
                 previous.is_ascii_lowercase() && character.is_ascii_uppercase()
-            }) {
+            }) || (previous.is_some_and(|previous: char| previous.is_ascii_uppercase())
+                && character.is_ascii_uppercase()
+                && characters
+                    .peek()
+                    .is_some_and(|(_, next)| next.is_ascii_lowercase()))
+            {
                 segments.push(&raw[start..index]);
                 start = index;
             }
@@ -621,7 +626,7 @@ mod tests {
         let header = "header-secret-value";
         assert_eq!(
             sensitive_key("\"api_key\"\u{2003}:\u{2002}value", 0),
-            Some((9, "key", false))
+            Some((9, "key", false, false))
         );
         let input = format!("\"api_key\"\u{2003}:\u{2002}\"{value}\"");
         assert_eq!(

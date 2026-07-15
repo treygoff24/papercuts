@@ -431,6 +431,54 @@ fn evidence_redacts_common_camel_case_credential_keys_in_stdout_and_jsonl() {
 }
 
 #[test]
+fn evidence_redacts_acronym_compound_credential_keys_in_stdout_and_jsonl() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let input = r#"DBPassword=one SSHKey=two APISecret=three "DBPassword":"four" --SSHKey five"#;
+    let expected = r#"DBPassword=<redacted> SSHKey=<redacted> APISecret=<redacted> "DBPassword":"<redacted>" --SSHKey <redacted>"#;
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args(["add", "acronym names", "--agent", "tester", "--evidence"])
+        .arg(input)
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    assert_eq!(
+        added.data.record.evidence.as_ref().unwrap().note.as_deref(),
+        Some(expected)
+    );
+    let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
+    let stored: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(stored["evidence"]["note"], expected);
+}
+
+#[test]
+fn evidence_redacts_sensitive_file_and_path_values_unless_an_option_value_is_structural() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let input = r#"password_file=hunter2 "token_path":"short" DB_PASSWORD_FILE=hunter2 --password-file /tmp/x --token-path src/token.txt --client-secret-file ./secret.txt --password-file hunter2 --token-path short --client-secret-file short"#;
+    let expected = r#"password_file=<redacted> "token_path":"<redacted>" DB_PASSWORD_FILE=<redacted> --password-file /tmp/x --token-path src/token.txt --client-secret-file ./secret.txt --password-file <redacted> --token-path <redacted> --client-secret-file <redacted>"#;
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args(["add", "file path matrix", "--agent", "tester", "--evidence"])
+        .arg(input)
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    assert_eq!(
+        added.data.record.evidence.as_ref().unwrap().note.as_deref(),
+        Some(expected)
+    );
+    let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
+    let stored: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(stored["evidence"]["note"], expected);
+}
+
+#[test]
 fn evidence_preserves_sensitive_named_file_and_path_options() {
     let temp = TempDir::new().unwrap();
     let file = temp.path().join("cuts.jsonl");

@@ -723,3 +723,39 @@ Outcome and verification: Generalized delimiter, camelCase, and PascalCase sensi
 Performance observations: 1m57s. Fast and minimal; a good example of coordinator inspection preventing an avoidable review cycle.
 
 Routing assessment: Luna high is efficient for small grammar generalizations with explicit positive and negative examples. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 2 closure review, seventh pass
+
+Command and run: `delegate --group papercuts-wave2-closure7 codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree; run handle: `codex-38`.
+
+Task and expectation: Seventh closure review after generalized camel/Pascal matching, error passthrough, and fault-injected rollback proof.
+
+Outcome and verification: Found one remaining major: acronym-prefixed credential keys such as `DBPassword` and `SSHKey` do not split at the acronym-to-titlecase boundary and leak short values. No files changed.
+
+Performance observations: 4m24s. Focused grammar-edge review with a standard word-boundary failure mechanism.
+
+Routing assessment: Sol high remains the primary leak-detection gate. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 2 closure review, seventh pass
+
+Command and run: `delegate --group papercuts-wave2-closure7 cursor safe --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree; run handle: `cursor-12`.
+
+Task and expectation: Seventh independent closure review of the complete Wave 2 range.
+
+Outcome and verification: Found one remaining major: the file/path suffix exemption suppresses redaction for non-path assignment and JSON values such as `password_file=hunter2`. This is the false-negative side of the prior false-positive repair. No files changed.
+
+Performance observations: 3m27s. Excellent counterexample against the usability exemption; paired reviewer coverage again prevented a security regression.
+
+Routing assessment: Grok is especially useful for finding false-negative consequences of heuristic exceptions. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 2 acronym and path-value repair
+
+Command and run: `delegate --group papercuts-wave2-fix7 codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2-fix7.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place; run handle: `codex-39`.
+
+Task and expectation: Add acronym-to-titlecase segmentation and make file/path preservation depend on an option's actual path-like value rather than the key name alone.
+
+Outcome and verification: Implemented acronym-aware key splitting and a secret-vs-path value matrix, with exact stdout/JSONL coverage for acronym keys, assignments, JSON values, and path-bearing options. Terra reported fmt, strict clippy, release build, diff check, and five full test runs green.
+
+Performance observations: 4m6s. Focused paired fix that addressed both false-negative findings without widening the public surface.
+
+Routing assessment: Terra high remains the preferred heuristic-repair lane. Confidence: high.
