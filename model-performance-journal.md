@@ -424,6 +424,18 @@ Performance observations: 2m40s. Precise configuration propagation and explicit 
 
 Routing assessment: Use Terra high for trust-boundary hook registration and evidence closure. Confidence: high.
 
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 1 final evidence gate
+
+Command and run: `delegate --cwd /tmp/papercuts-wave1-review.BCpo6K --group papercuts-wave1-final-evidence codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave1-final-evidence-review.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/private directory copy; run handle: `codex-5` in the bundle workspace.
+
+Task and expectation: Final requirement-by-requirement Wave 1 closure review over current sanitized configs, launchers, fixes, settings, and acceptance evidence.
+
+Outcome and verification: CLEAN with no blocker or major findings. It verified POSIX environment preservation, agent-only GNU PATH, settings/hooks, launchers, BSD-idiom fixes, full Wave 1.6 evidence, and plan-compliant Codex/Cursor deferrals.
+
+Performance observations: 4m50s. Efficient final evidence audit; secrecy boundary preserved.
+
+Routing assessment: Wave 1 is closed. Use the same sanitized-bundle plus Sol-high pattern for future credential-adjacent environment migrations. Confidence: high.
+
 ## 2026-07-15 - Claude via claude - Wave 1 shell acceptance probe
 
 Command and run: `delegate --group papercuts-wave1-accept claude safe --reasoning-effort low --prompt-file /tmp/papercuts-shell-probe.md`; alias/variant/effort: default Claude, low; mode/isolation: safe/temporary worktree; run handle: `claude-1`.
