@@ -210,6 +210,40 @@ fn padded_standalone_base64_is_redacted_in_stdout_and_jsonl() {
 }
 
 #[test]
+fn long_single_category_tokens_are_redacted_without_redacting_prose_words() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let lowercase = "qjvmskuegxndiwobhtcylrpzfaeqjnwk";
+    let padded = "qjvmskuegxndiwobhtcylrpzfaeqjnwk==";
+    let input = format!(
+        "token {lowercase} padded {padded} antidisestablishmentarianism pneumonoultramicroscopicsilicovolcanoconiosis"
+    );
+    let expected = "token <redacted> padded <redacted> antidisestablishmentarianism pneumonoultramicroscopicsilicovolcanoconiosis";
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args([
+            "add",
+            "lowercase credential",
+            "--agent",
+            "tester",
+            "--evidence",
+        ])
+        .arg(input)
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    assert_eq!(
+        added.data.record.evidence.as_ref().unwrap().note.as_deref(),
+        Some(expected)
+    );
+    let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
+    let stored: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(stored["evidence"]["note"], expected);
+}
+
+#[test]
 fn padded_base64_crossing_stderr_storage_boundary_leaves_no_prefix() {
     let temp = TempDir::new().unwrap();
     let file = temp.path().join("cuts.jsonl");
@@ -293,7 +327,7 @@ fn evidence_redaction_handles_boundary_headers_unicode_json_and_cli_options() {
         &stderr_file,
         format!(
             "{}\nAuthorization: Basic {secret}\ncontext=kept",
-            "x".repeat(4092)
+            "x".repeat(4070)
         ),
     )
     .unwrap();
@@ -367,6 +401,26 @@ fn evidence_redaction_handles_boundary_headers_unicode_json_and_cli_options() {
         assert!(
             !evidence.contains(forbidden),
             "redaction failed for {label}"
+        );
+    }
+    let secret_prefix = &secret[..8];
+    let stderr = added
+        .data
+        .record
+        .evidence
+        .as_ref()
+        .unwrap()
+        .stderr
+        .as_deref()
+        .unwrap();
+    for (label, value) in [
+        ("stderr", stderr),
+        ("stdout", stdout.as_str()),
+        ("stored", stored.as_str()),
+    ] {
+        assert!(
+            !value.contains(secret_prefix),
+            "truncated secret prefix leaked in {label}"
         );
     }
     let note = added.data.record.evidence.unwrap().note.unwrap();

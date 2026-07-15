@@ -491,6 +491,20 @@ fn high_entropy_spans(input: &str) -> Vec<(usize, usize)> {
                 .bytes()
                 .collect::<std::collections::HashSet<_>>()
                 .len();
+            let unpadded = value.trim_end_matches('=');
+            let core_unique = unpadded
+                .bytes()
+                .collect::<std::collections::HashSet<_>>()
+                .len();
+            let core_categories = [
+                unpadded.bytes().any(|byte| byte.is_ascii_lowercase()),
+                unpadded.bytes().any(|byte| byte.is_ascii_uppercase()),
+                unpadded.bytes().any(|byte| byte.is_ascii_digit()),
+                unpadded.bytes().any(|byte| !byte.is_ascii_alphanumeric()),
+            ]
+            .into_iter()
+            .filter(|present| *present)
+            .count();
             let categories = [
                 value.bytes().any(|byte| byte.is_ascii_lowercase()),
                 value.bytes().any(|byte| byte.is_ascii_uppercase()),
@@ -500,11 +514,13 @@ fn high_entropy_spans(input: &str) -> Vec<(usize, usize)> {
             .into_iter()
             .filter(|present| *present)
             .count();
-            if !looks_like_path_or_url(value)
-                && value.len() >= 24
-                && unique >= 12
-                && (categories >= 3
-                    || (categories >= 2 && value.bytes().any(|byte| byte.is_ascii_digit())))
+            let not_structural = !looks_like_path_or_url(value);
+            if not_structural
+                && ((value.len() >= 24
+                    && unique >= 12
+                    && (categories >= 3
+                        || (categories >= 2 && value.bytes().any(|byte| byte.is_ascii_digit()))))
+                    || (value.len() >= 32 && core_unique >= 20 && core_categories == 1))
             {
                 spans.push((value_start, index));
             }

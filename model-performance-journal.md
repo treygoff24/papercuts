@@ -759,3 +759,39 @@ Outcome and verification: Implemented acronym-aware key splitting and a secret-v
 Performance observations: 4m6s. Focused paired fix that addressed both false-negative findings without widening the public surface.
 
 Routing assessment: Terra high remains the preferred heuristic-repair lane. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 2 closure review, eighth pass
+
+Command and run: `delegate --group papercuts-wave2-closure8 codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree; run handle: `codex-40`.
+
+Task and expectation: Eighth closure review after acronym-aware segmentation and value-dependent path preservation.
+
+Outcome and verification: Found one remaining major: sufficiently long high-uniqueness lowercase credentials evade the category-count entropy heuristic and can persist unchanged. No files changed.
+
+Performance observations: 3m59s. Concise, credible generic-token counterexample with low false-positive risk after structural path/URL exclusion.
+
+Routing assessment: Sol high remains the authoritative redaction closure lane. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 2 closure review, eighth pass
+
+Command and run: `delegate --group papercuts-wave2-closure8 cursor safe --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree; run handle: `cursor-13`.
+
+Task and expectation: Eighth independent closure review of the complete Wave 2 range.
+
+Outcome and verification: Reported clean of blocker/major. Suggested strengthening the Authorization truncation-boundary regression and mirroring evidence-file limits in clap help; other residuals were explicitly documented best-effort or crash-durability non-goals. No files changed.
+
+Performance observations: 2m32s. Useful closure-oriented review that separated cheap polish from deliberate residual risk.
+
+Routing assessment: Grok continues to add practical test/help parity after security findings narrow. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 2 lowercase entropy hardening
+
+Command and run: `delegate --group papercuts-wave2-fix8 codex work --model luna --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2-fix8.md`; alias/variant/effort: `luna`, high; mode/isolation: work/in-place; run handle: `codex-41`.
+
+Task and expectation: Catch long high-uniqueness single-category credentials, strengthen the Authorization boundary regression, and align stderr-file help.
+
+Outcome and verification: Added a conservative 32-byte and 20-unique-character fallback after path/URL exclusion, exact positive and benign negative cases, a real pre-4096 Authorization boundary fixture, and concise clap limit/help text. Luna reported fmt, strict clippy, release build, diff check, and five full test passes green.
+
+Performance observations: 4m12s. Balanced security and false-positive control with a simple measurable threshold.
+
+Routing assessment: Luna high is suitable for narrowly scoped heuristic tuning with explicit positive/negative thresholds. Confidence: high.

@@ -59,7 +59,7 @@ pub struct AddArgs {
     #[arg(
         long,
         value_name = "PATH",
-        help = "Read stderr from PATH at filing time"
+        help = "Read regular UTF-8 PATH (<=1 MiB); best-effort redaction; store sanitized value <=4096 bytes"
     )]
     pub stderr_file: Option<PathBuf>,
     #[arg(
