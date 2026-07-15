@@ -36,7 +36,7 @@ papercuts doctor                # validate the log file
 - **Concurrency-safe**: multiple agents on one file are fine (advisory locking, atomic appends, self-healing torn lines).
 - **Deterministic**: content-addressed IDs, stable sort, reproducible-clock override for tests.
 - **Never rewrites history**: `resolve` appends an event; the log is a journal, not a database.
-- **Evidence is bounded and redacted**: `add` can attach `--cmd`, `--exit`, `--stderr-file`, or `--evidence`; stderr is read at filing time and stored up to 4096 UTF-8 bytes. Redaction is best-effort, so never feed raw environment dumps.
+- **Evidence is bounded and redacted**: `add` can attach `--cmd`, `--exit`, `--stderr-file`, or `--evidence`; `--stderr-file` rejects inputs over 1 MiB before sanitized stderr is stored up to 4096 UTF-8 bytes. Redaction is best-effort, so never feed raw environment dumps.
 
 ## Give your agents the pen
 

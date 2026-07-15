@@ -201,6 +201,18 @@ pub fn append_json_batch<T: serde::Serialize>(
 }
 
 fn append_bytes(file: &mut File, path: &Path, prior: &[u8], record_bytes: &[u8]) -> AppResult<()> {
+    append_bytes_with(file, path, prior, record_bytes, |file, bytes| {
+        file.write_all(bytes)
+    })
+}
+
+fn append_bytes_with(
+    file: &mut File,
+    path: &Path,
+    prior: &[u8],
+    record_bytes: &[u8],
+    write: impl FnOnce(&mut File, &[u8]) -> std::io::Result<()>,
+) -> AppResult<()> {
     let original_len = file
         .metadata()
         .map_err(|error| AppError::from_io(error, path))?
@@ -211,7 +223,7 @@ fn append_bytes(file: &mut File, path: &Path, prior: &[u8], record_bytes: &[u8])
     }
     bytes.extend_from_slice(record_bytes);
     // If the write fails, roll back to the pre-write length; if rollback also fails, surface both.
-    if let Err(error) = file.write_all(&bytes) {
+    if let Err(error) = write(file, &bytes) {
         if let Err(rollback) = file.set_len(original_len) {
             return Err(AppError {
                 code: "io_error",
@@ -350,6 +362,8 @@ fn warning(warnings: &mut Vec<String>, count: usize, label: &str) {
 mod tests {
     use super::*;
     use crate::{Severity, compute_id};
+    use std::io::Write;
+    use tempfile::TempDir;
 
     fn cut(id: &str) -> String {
         cut_with_text(id, "x")
@@ -370,6 +384,34 @@ mod tests {
             "agent":"a", "note":null
         })
         .to_string()
+    }
+
+    #[test]
+    fn batch_append_rollback_restores_a_torn_tail_after_partial_write_failure() {
+        let temp = TempDir::new().unwrap();
+        let path = temp.path().join("cuts.jsonl");
+        let original = b"{\"kind\":\"cut\"}\n{\"kind\":";
+        std::fs::write(&path, original).unwrap();
+        let mut file = OpenOptions::new()
+            .read(true)
+            .append(true)
+            .open(&path)
+            .unwrap();
+
+        let error = append_bytes_with(
+            &mut file,
+            &path,
+            original,
+            b"{\"kind\":\"resolve\"}\n{\"kind\":\"resolve\"}\n",
+            |file, bytes| {
+                file.write_all(&bytes[..8])?;
+                Err(std::io::Error::other("injected partial write failure"))
+            },
+        )
+        .unwrap_err();
+
+        assert_eq!(error.code, "io_error");
+        assert_eq!(std::fs::read(&path).unwrap(), original);
     }
 
     #[test]

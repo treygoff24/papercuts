@@ -407,6 +407,60 @@ fn evidence_redacts_common_compound_names_in_stdout_and_jsonl() {
 }
 
 #[test]
+fn evidence_redacts_common_camel_case_credential_keys_in_stdout_and_jsonl() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let input = r#"{"accessToken":"one","refreshToken":"two","clientSecret":"three","apiKey":"four","dbPassword":"five","sessionToken":"six","consumerSecret":"seven","privateKey":"eight","RefreshToken":"nine"} --accessToken ten monkey=keep keynotes=keep tokenized=keep"#;
+    let expected = r#"{"accessToken":"<redacted>","refreshToken":"<redacted>","clientSecret":"<redacted>","apiKey":"<redacted>","dbPassword":"<redacted>","sessionToken":"<redacted>","consumerSecret":"<redacted>","privateKey":"<redacted>","RefreshToken":"<redacted>"} --accessToken <redacted> monkey=keep keynotes=keep tokenized=keep"#;
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args(["add", "camel case names", "--agent", "tester", "--evidence"])
+        .arg(input)
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    assert_eq!(
+        added.data.record.evidence.as_ref().unwrap().note.as_deref(),
+        Some(expected)
+    );
+    let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
+    let stored: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(stored["evidence"]["note"], expected);
+}
+
+#[test]
+fn evidence_preserves_sensitive_named_file_and_path_options() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let input = "--password-file /tmp/x --token-path src/token.txt --client-secret-file ./secret.txt --client-secret value";
+    let expected = "--password-file /tmp/x --token-path src/token.txt --client-secret-file ./secret.txt --client-secret <redacted>";
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args([
+            "add",
+            "file option names",
+            "--agent",
+            "tester",
+            "--evidence",
+        ])
+        .arg(input)
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    assert_eq!(
+        added.data.record.evidence.as_ref().unwrap().note.as_deref(),
+        Some(expected)
+    );
+    let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
+    let stored: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(stored["evidence"]["note"], expected);
+}
+
+#[test]
 fn evidence_redacts_slash_base64_but_keeps_structural_paths_and_urls() {
     let temp = TempDir::new().unwrap();
     let file = temp.path().join("cuts.jsonl");
@@ -1162,7 +1216,33 @@ fn resolve_prefix_errors_and_idempotence_are_structured() {
     assert_eq!(second.meta.warnings, ["already resolved"]);
 
     error(&run_file(&file, &["resolve", "abc"]), 2, "invalid_argument");
-    error(&run_file(&file, &["resolve", "deadbeef"]), 66, "not_found");
+    let unknown = error(&run_file(&file, &["resolve", "deadbeef"]), 66, "not_found");
+    assert_eq!(
+        unknown.error.message,
+        "no papercut matches ID prefix 'deadbeef'"
+    );
+    assert_eq!(
+        unknown.error.suggested_fix,
+        "Run `papercuts list --status all` and retry with a listed ID."
+    );
+
+    let missing = temp.path().join("missing.jsonl");
+    let missing = error(
+        &run_file(&missing, &["resolve", "deadbeef"]),
+        66,
+        "not_found",
+    );
+    assert_eq!(
+        missing.error.message,
+        format!(
+            "papercuts file not found: {}",
+            temp.path().join("missing.jsonl").display()
+        )
+    );
+    assert_eq!(
+        missing.error.suggested_fix,
+        "Run `papercuts add` to create the file or pass an existing --file PATH."
+    );
 
     let ambiguous = temp.path().join("ambiguous.jsonl");
     let lines = ["pc_abcd00000000", "pc_abcd11111111"]

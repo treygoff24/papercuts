@@ -318,25 +318,66 @@ fn sensitive_key(input: &str, start: usize) -> Option<(usize, &'static str, bool
         (&rest[..length], start + length, false)
     };
     let normalized = raw.to_ascii_lowercase();
+    let segments = key_segments(raw);
+    if segments.last().is_some_and(|segment| {
+        segment.eq_ignore_ascii_case("file") || segment.eq_ignore_ascii_case("path")
+    }) && segments.iter().any(|segment| is_sensitive_segment(segment))
+    {
+        return None;
+    }
+    let delimiter_name = raw.contains(['_', '-']);
     let key = match normalized.as_str() {
         "authorization" => "authorization",
         "bearer" => "bearer",
         "apikey" => "key",
-        _ if normalized
-            .split(['_', '-'])
-            .any(|segment| segment == "authorization") =>
+        "password" | "passwd" | "secret" | "token" | "key" => "key",
+        _ if delimiter_name
+            && segments
+                .iter()
+                .any(|segment| segment.eq_ignore_ascii_case("authorization")) =>
         {
             "authorization"
         }
-        _ if normalized.split(['_', '-']).any(|segment| {
-            matches!(segment, "password" | "passwd" | "secret" | "token" | "key")
-        }) =>
-        {
+        _ if segments.len() > 1 && segments.iter().any(|segment| is_sensitive_segment(segment)) => {
             "key"
         }
         _ => return None,
     };
     Some((end, key, option))
+}
+
+fn key_segments(raw: &str) -> Vec<&str> {
+    let mut segments = Vec::new();
+    let mut start = 0;
+    let mut previous = None;
+    for (index, character) in raw.char_indices() {
+        if matches!(character, '_' | '-') {
+            if start < index {
+                segments.push(&raw[start..index]);
+            }
+            start = index + character.len_utf8();
+            previous = None;
+        } else {
+            if previous.is_some_and(|previous: char| {
+                previous.is_ascii_lowercase() && character.is_ascii_uppercase()
+            }) {
+                segments.push(&raw[start..index]);
+                start = index;
+            }
+            previous = Some(character);
+        }
+    }
+    if start < raw.len() {
+        segments.push(&raw[start..]);
+    }
+    segments
+}
+
+fn is_sensitive_segment(segment: &str) -> bool {
+    matches!(
+        segment.to_ascii_lowercase().as_str(),
+        "password" | "passwd" | "secret" | "token" | "key"
+    )
 }
 
 fn assignment_separator(input: &str, index: usize) -> Option<usize> {

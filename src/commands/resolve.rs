@@ -112,20 +112,11 @@ pub fn run(
         }
         Ok((changed, already_resolved_ids, items))
     };
-    let (changed, already_resolved_ids, records) = match if args.dry_run {
+    let (changed, already_resolved_ids, records) = if args.dry_run {
         store::with_shared(&resolved.path, action)
     } else {
         store::with_exclusive(&resolved.path, false, action)
-    } {
-        Ok(result) => result,
-        Err(error) if error.code == "not_found" && error.exit_code == 66 => {
-            return Err(AppError::not_found(
-                format!("papercuts file not found: {}", resolved.path.display()),
-                "Run `papercuts list --status all` to find an ID after adding a papercut.",
-            ));
-        }
-        Err(error) => return Err(error),
-    };
+    }?;
     let mut meta = Meta::new();
     meta.file = Some(resolved.path.to_string_lossy().into_owned());
     meta.agent_source = Some(source.into());

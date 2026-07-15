@@ -675,3 +675,51 @@ Outcome and verification: Fixed separated option, assignment, header, arbitrary 
 Performance observations: 2m57s. Fast, appropriately minimal patch after a highly specific converged review finding.
 
 Routing assessment: Terra high is the preferred lane for tight final security corrections. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 2 closure review, sixth pass
+
+Command and run: `delegate --group papercuts-wave2-closure6 codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree; run handle: `codex-35`.
+
+Task and expectation: Sixth independent closure review after all authorization schemes and Unicode separator handling were fixed.
+
+Outcome and verification: Found one remaining major: camelCase credential keys such as `accessToken`, `refreshToken`, and `clientSecret` bypass segment matching. Also found an unrelated unknown-ID error rewrite and missing fault-injected batch rollback proof. No files changed.
+
+Performance observations: 6m40s. The camel-boundary finding is common-config relevant and below the entropy fallback, so the major ranking is justified.
+
+Routing assessment: Continue Sol high until the redaction key grammar closes common real-world naming conventions. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 2 closure review, sixth pass
+
+Command and run: `delegate --group papercuts-wave2-closure6 cursor safe --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree; run handle: `cursor-11`.
+
+Task and expectation: Sixth independent closure review over the full Wave 2 range.
+
+Outcome and verification: Reported clean of blocker/major, but identified false-positive option redaction for `--password-file`-style names and a README omission of the 1 MiB evidence-file cap. It missed camelCase credential keys and the resolve error rewrite. No files changed.
+
+Performance observations: 2m24s. Useful false-positive and documentation complement to Sol's leak-focused review.
+
+Routing assessment: Retain Grok for usability false positives and documentation parity. Confidence: medium-high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 2 camelCase and rollback repair
+
+Command and run: `delegate --group papercuts-wave2-fix6 codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2-fix6.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place; run handle: `codex-36`.
+
+Task and expectation: Add camelCase credential matching without file/path false positives, preserve unknown-ID diagnostics, fault-inject batch rollback, and align README evidence limits.
+
+Outcome and verification: Implemented camel-boundary segmentation and path/file option exclusions, fixed resolve error passthrough, added a partial-write/torn-tail rollback unit test seam, and documented the 1 MiB input limit. Terra reported fmt, strict clippy, release build, diff check, and five all-feature test passes green.
+
+Performance observations: 4m8s. Efficient mixed security/correctness pass; the rollback proof materially improves append-only confidence with a narrow test seam.
+
+Routing assessment: Terra high remains effective for late-stage fixes that combine parser grammar and store invariants. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 2 camel grammar generalization
+
+Command and run: `delegate --group papercuts-wave2-camel-generalize codex work --model luna --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2-camel-generalize.md`; alias/variant/effort: `luna`, high; mode/isolation: work/in-place; run handle: `codex-37`.
+
+Task and expectation: Replace the hardcoded camel credential-name list with the already-intended general camel/Pascal segment grammar while preserving negative and file/path cases.
+
+Outcome and verification: Generalized delimiter, camelCase, and PascalCase sensitive-segment matching; added sessionToken, consumerSecret, privateKey, and RefreshToken cases; removed the hardcoded list. Luna reported fmt, strict clippy, release build, full tests, and diff check green.
+
+Performance observations: 1m57s. Fast and minimal; a good example of coordinator inspection preventing an avoidable review cycle.
+
+Routing assessment: Luna high is efficient for small grammar generalizations with explicit positive and negative examples. Confidence: high.
