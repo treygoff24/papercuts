@@ -567,3 +567,39 @@ Outcome and verification: Fixed Basic/Bearer quoted and unquoted sanitization so
 Performance observations: 5m16s. Careful small-scope correction with stronger exact-output coverage than the first repair. Slower than expected for the size, but it caught related JSON/header variants.
 
 Routing assessment: Luna high is suitable for bounded follow-up corrections after coordinator diff inspection. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 2 closure review, third pass
+
+Command and run: `delegate --group papercuts-wave2-closure3 codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree; run handle: `codex-29`.
+
+Task and expectation: Third independent closure review of the full Wave 2 range after compound-name, Base64, FIFO, query, and quote repairs.
+
+Outcome and verification: Not clean. Found an escaped-quote secret-tail leak and over-redaction of ordinary repository-relative paths and schemeless URLs. Also found three internally stale design statements and missing exact evidence-file error branch tests. No files changed.
+
+Performance observations: 8m32s. Excellent adversarial persistence: it found a new parser-state failure and the false-positive side of the prior security heuristic. This justifies continuing the loop despite all gates being green.
+
+Routing assessment: Sol high remains mandatory for final trust-boundary closure. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 2 closure review, third pass
+
+Command and run: `delegate --group papercuts-wave2-closure3 cursor safe --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree; run handle: `cursor-8`.
+
+Task and expectation: Third independent Wave 2 closure review with the same adversarial checklist.
+
+Outcome and verification: Reported clean of blocker/major, corroborated stale open-first documentation and evidence error-path test gaps, and added URL-userinfo redaction plus ambiguous-in-batch atomicity as residual minors. It missed the escaped-quote leak and relative-path false positive. No files changed.
+
+Performance observations: 2m57s. Fast complementary breadth, particularly around URL credentials and atomicity coverage, but again less sensitive than Sol to parser and heuristic edge cases.
+
+Routing assessment: Retain as independent breadth reviewer alongside, not instead of, Sol. Confidence: medium-high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 2 third security repair
+
+Command and run: `delegate --group papercuts-wave2-fix3 codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2-fix3.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place; run handle: `codex-30`.
+
+Task and expectation: Fix escaped-quote tail leakage and relative-path false positives, redact URL userinfo, align normative documentation, cover evidence-file error branches, and prove multi-resolve ambiguity is atomic.
+
+Outcome and verification: Implemented escape-aware quote scanning, conservative relative-path and schemeless-URL recognition without reopening slash-Base64 leakage, URL-userinfo sanitization, exact error/atomicity regressions, and design corrections including the direct libc inventory. Terra reported fmt, strict clippy, release build, diff check, and five full test passes green with 47 tests each.
+
+Performance observations: 7m46s. Strong balance between security and evidence preservation; test coverage expanded materially while production logic stayed localized.
+
+Routing assessment: Terra high is effective for late-stage heuristic hardening when supplied with paired positive and negative cases. Confidence: high.

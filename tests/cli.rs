@@ -285,7 +285,12 @@ fn evidence_redacts_slash_base64_but_keeps_structural_paths_and_urls() {
     let posix_path = "/var/tmp/AbCdEf0123456789GhIjKlMnOpQrStUv.log";
     let windows_path = r"C:\\Temp\\AbCdEf0123456789GhIjKlMnOpQrStUv.log";
     let url = "https://example.test/a/AbCdEf0123456789GhIjKlMnOpQrStUv";
-    let input = format!("payload={base64} posix={posix_path} windows={windows_path} url={url}");
+    let source_path = "src/cache/AbCdEf0123456789GhIjKlMnOpQrStUv.json";
+    let relative_path = "docs/notes/AbCdEf0123456789GhIjKlMnOpQrStUv.md";
+    let schemeless_url = "example.test/path/AbCdEf0123456789GhIjKlMnOpQrStUv";
+    let input = format!(
+        "payload={base64} posix={posix_path} windows={windows_path} url={url} source={source_path} relative={relative_path} host={schemeless_url}"
+    );
     let output = command()
         .arg("--file")
         .arg(&file)
@@ -294,11 +299,42 @@ fn evidence_redacts_slash_base64_but_keeps_structural_paths_and_urls() {
         .output()
         .unwrap();
     let added: SuccessEnvelope<AddData> = success(&output);
-    let expected =
-        format!("payload=<redacted> posix={posix_path} windows={windows_path} url={url}");
+    let expected = format!(
+        "payload=<redacted> posix={posix_path} windows={windows_path} url={url} source={source_path} relative={relative_path} host={schemeless_url}"
+    );
     assert_eq!(
         added.data.record.evidence.as_ref().unwrap().note.as_deref(),
         Some(expected.as_str())
+    );
+    let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
+    let stored: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(stored["evidence"]["note"], expected);
+}
+
+#[test]
+fn evidence_redacts_escaped_quoted_values_and_url_userinfo_in_stdout_and_jsonl() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let input = r#"api_key="odd\"tail-secret" access_token="even\\"safe endpoint=https://user:credential@host.test/path fallback=http://user:credential@host.test/path"#;
+    let expected = r#"api_key="<redacted>" access_token="<redacted>"safe endpoint=https://<redacted>@host.test/path fallback=http://<redacted>@host.test/path"#;
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args([
+            "add",
+            "quoted evidence",
+            "--agent",
+            "tester",
+            "--evidence",
+            input,
+        ])
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    assert_eq!(
+        added.data.record.evidence.unwrap().note.as_deref(),
+        Some(expected)
     );
     let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
@@ -423,6 +459,89 @@ fn stderr_file_requires_a_regular_file_and_follows_regular_file_symlinks() {
         assert!(envelope.error.message.contains("not a regular file"));
         assert!(envelope.error.suggested_fix.contains("FIFOs and devices"));
     }
+}
+
+#[cfg(unix)]
+#[test]
+fn stderr_file_errors_are_structured_and_specific() {
+    use std::os::unix::fs::{PermissionsExt, symlink};
+
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let invoke = |path: &Path| {
+        run_file(
+            &file,
+            &[
+                "add",
+                "bad evidence",
+                "--stderr-file",
+                path.to_str().unwrap(),
+            ],
+        )
+    };
+
+    let oversized = temp.path().join("oversized.txt");
+    std::fs::write(&oversized, vec![b'x'; 1024 * 1024 + 1]).unwrap();
+    let oversized = error(&invoke(&oversized), 65, "invalid_input");
+    assert!(
+        oversized
+            .error
+            .message
+            .contains("exceeds the 1048576-byte read limit")
+    );
+    assert!(
+        oversized
+            .error
+            .suggested_fix
+            .contains("smaller stderr file")
+    );
+
+    let invalid_utf8 = temp.path().join("invalid-utf8.txt");
+    std::fs::write(&invalid_utf8, [0xff]).unwrap();
+    let invalid_utf8 = error(&invoke(&invalid_utf8), 65, "invalid_input");
+    assert!(invalid_utf8.error.message.contains("not valid UTF-8"));
+    assert!(
+        invalid_utf8
+            .error
+            .suggested_fix
+            .contains("UTF-8 stderr file")
+    );
+
+    let directory = temp.path().join("stderr-directory");
+    std::fs::create_dir(&directory).unwrap();
+    let directory_error = error(&invoke(&directory), 65, "invalid_input");
+    assert!(directory_error.error.message.contains("not a regular file"));
+    assert!(
+        directory_error
+            .error
+            .suggested_fix
+            .contains("regular UTF-8 file")
+    );
+
+    let link = temp.path().join("stderr-directory-link");
+    symlink(&directory, &link).unwrap();
+    let link = error(&invoke(&link), 65, "invalid_input");
+    assert!(link.error.message.contains("not a regular file"));
+    assert!(link.error.suggested_fix.contains("FIFOs and devices"));
+
+    let unreadable = temp.path().join("unreadable.txt");
+    std::fs::write(&unreadable, "stderr").unwrap();
+    std::fs::set_permissions(&unreadable, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let output = invoke(&unreadable);
+    std::fs::set_permissions(&unreadable, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let unreadable = error(&output, 77, "permission_denied");
+    assert!(
+        unreadable
+            .error
+            .message
+            .starts_with("permission denied reading stderr evidence file")
+    );
+    assert!(
+        unreadable
+            .error
+            .suggested_fix
+            .contains("Grant read permission")
+    );
 }
 
 #[test]
@@ -877,6 +996,33 @@ fn multi_resolve_is_atomic_deterministic_and_idempotent() {
     assert_eq!(duplicate.data.records.len(), 1);
     assert_eq!(duplicate.meta.warnings, ["already resolved"]);
     assert_eq!(std::fs::read_to_string(&file).unwrap().lines().count(), 4);
+}
+
+#[test]
+fn multi_resolve_with_ambiguous_prefix_is_atomic_and_returns_sorted_candidates() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let valid = add(&file, "valid multi resolve").data.record.id;
+    let ambiguous = ["pc_abcd11111111", "pc_abcd00000000"]
+        .map(|id| {
+            json!({"kind":"cut","id":id,"ts":"2026-07-09T00:00:00.000Z","agent":"a","text":id,"tags":[],"severity":"minor","cwd":"/tmp","repo":null}).to_string()
+        })
+        .join("\n");
+    let mut log = OpenOptions::new().append(true).open(&file).unwrap();
+    writeln!(log, "{ambiguous}").unwrap();
+    drop(log);
+    let before = std::fs::read(&file).unwrap();
+
+    let envelope = error(
+        &run_file(&file, &["resolve", &valid, "abcd"]),
+        65,
+        "ambiguous_id",
+    );
+    assert_eq!(
+        envelope.error.details["candidates"],
+        json!(["pc_abcd00000000", "pc_abcd11111111"])
+    );
+    assert_eq!(std::fs::read(&file).unwrap(), before);
 }
 
 #[test]

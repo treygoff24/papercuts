@@ -96,7 +96,7 @@ Resolve event:
 {"kind":"resolve","id":"pc_a1b2c3d4e5f6","ts":"2026-07-10T09:00:00.000Z","agent":"trey","note":"added rg wrapper to CLAUDE.md"}
 ```
 
-- `id` = `pc_` + first 12 lowercase hex of SHA-256 over the **length-prefixed** field sequence `len(ts) ts len(agent) agent len(text) text len(severity) severity len(tags.join(","))  tags.join(",")` (each len a u32-LE of the UTF-8 byte count; tags sorted) — content-addressed and unambiguous (no delimiter injection), covering every user-supplied field so two same-instant records differing only in severity/tags get distinct IDs.
+- `id` = `pc_` + first 12 lowercase hex of SHA-256 over the **length-prefixed** field sequence `len(ts) ts len(agent) agent len(text) text len(severity) severity len(tags.join(","))  tags.join(",")` (each len a u32-LE of the UTF-8 byte count; tags sorted) — content-addressed and unambiguous (no delimiter injection), covering every identity-bearing field; evidence is deliberately excluded so two same-instant records differing only in severity/tags get distinct IDs while evidence-only retries deduplicate.
 
 ### Materialized output shapes (normative)
 
@@ -141,6 +141,7 @@ Concurrency (r3-hardened): mutations open read+append, acquire an exclusive `std
 - `thiserror` — typed public error contract.
 - `jiff` — RFC3339 UTC timestamps, parsing `--since`. (Frozen choice — implementer must not substitute.)
 - `sha2` — content-addressed IDs.
+- `libc` — direct Unix `O_NONBLOCK` flag for safely opening evidence paths before validating the opened handle.
 - Dev: `assert_cmd`, `predicates`, `tempfile`.
 
 Nothing else. No tokio, no color crates, no config-file crate, no git library.
@@ -195,7 +196,7 @@ Second decorrelated review: 1 blocker, 12 major, 1 minor. Triage:
 
 ## Amendments (r4, Wave 2 implementation 2026-07-15)
 
-Wave 2 adds optional cut evidence without changing the v1 identity or fold rules. A cut may carry `evidence` with optional `cmd`, integer `exit`, `stderr`, and `note` fields; absent fields are omitted during serialization, and stderr is read and redacted in full before its sanitized value is capped at 4096 valid UTF-8 bytes. To keep memory bounded, `--stderr-file` rejects regular files over 1 MiB rather than raw-truncating them before redaction. `metadata()` follows symlinks: a symlink to a regular file is accepted, while a FIFO, device, directory, or a symlink resolving to one is rejected before opening. Evidence strings pass a deterministic best-effort redactor for assignment/header forms involving key, token, secret, password, authorization, and bearer, plus long high-entropy token shapes; this does not make raw environment dumps safe to submit.
+Wave 2 adds optional cut evidence without changing the v1 identity or fold rules. A cut may carry `evidence` with optional `cmd`, integer `exit`, `stderr`, and `note` fields; absent fields are omitted during serialization, and stderr is read and redacted in full before its sanitized value is capped at 4096 valid UTF-8 bytes. To keep memory bounded, `--stderr-file` rejects regular files over 1 MiB rather than raw-truncating them before redaction. On Unix it opens the path nonblocking, then validates metadata from that opened handle; symlinks therefore resolve to a regular-file handle when accepted, while a FIFO, device, directory, or a symlink resolving to one is rejected. Evidence strings pass a deterministic best-effort redactor for assignment/header forms involving key, token, secret, password, authorization, and bearer, plus long high-entropy token shapes. It preserves structurally obvious paths and URLs, including repository-relative paths and schemeless hostnames, but this remains heuristic and does not make raw environment dumps safe to submit.
 
 Evidence is not included in the content-addressed ID. Duplicate cut events remain first-cut-wins, and duplicate-ID `add` returns the first record with a `duplicate_cut` warning stating that later evidence was not stored. Resolve events remain first-resolve-wins. Multi-ID `resolve` validates every argument and prefix under one exclusive-lock critical section before appending; one ID retains `{changed,record}`, while two or more IDs return `{changed,records:[...]}` in canonical ID order. Validation failures append nothing.
 

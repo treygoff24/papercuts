@@ -244,6 +244,7 @@ fn redact_evidence(input: &str) -> String {
     for (start, end) in high_entropy_spans(input) {
         spans.push((start, end));
     }
+    spans.extend(url_userinfo_spans(input));
     spans.sort_unstable();
     let mut merged = Vec::new();
     for (start, end) in spans {
@@ -264,6 +265,35 @@ fn redact_evidence(input: &str) -> String {
     }
     output.push_str(&input[cursor..]);
     output
+}
+
+fn url_userinfo_spans(input: &str) -> Vec<(usize, usize)> {
+    let lower = input.to_ascii_lowercase();
+    let mut spans = Vec::new();
+    let mut search_start = 0;
+    while let Some(offset) = lower[search_start..].find("http") {
+        let start = search_start + offset;
+        let scheme_len = if lower[start..].starts_with("https://") {
+            "https://".len()
+        } else if lower[start..].starts_with("http://") {
+            "http://".len()
+        } else {
+            search_start = start + "http".len();
+            continue;
+        };
+        let authority_start = start + scheme_len;
+        let authority_end = input[authority_start..]
+            .char_indices()
+            .find(|(_, character)| "/?#\"' \t\r\n".contains(*character))
+            .map_or(input.len(), |(offset, _)| authority_start + offset);
+        if let Some(at) = input[authority_start..authority_end].rfind('@')
+            && input[authority_start..authority_start + at].contains(':')
+        {
+            spans.push((authority_start, authority_start + at));
+        }
+        search_start = authority_end.max(authority_start);
+    }
+    spans
 }
 
 fn sensitive_key(input: &str, start: usize) -> Option<(usize, &'static str, bool)> {
@@ -336,8 +366,12 @@ fn value_span(input: &str, start: usize) -> Option<(usize, usize)> {
     if first == '\'' || first == '"' {
         let content_start = start + first.len_utf8();
         let content_end = input[content_start..]
-            .find(first)
-            .map_or(input.len(), |offset| content_start + offset);
+            .char_indices()
+            .find_map(|(offset, character)| {
+                (character == first && !is_escaped_quote(input, content_start + offset))
+                    .then_some(content_start + offset)
+            })
+            .unwrap_or(input.len());
         return (content_start < content_end).then_some((content_start, content_end));
     }
     let end = input[start..]
@@ -345,6 +379,16 @@ fn value_span(input: &str, start: usize) -> Option<(usize, usize)> {
         .find(|(_, character)| character.is_ascii_whitespace() || ",;)]}&#\"'".contains(*character))
         .map_or(input.len(), |(offset, _)| start + offset);
     (start < end).then_some((start, end))
+}
+
+fn is_escaped_quote(input: &str, quote: usize) -> bool {
+    input[..quote]
+        .bytes()
+        .rev()
+        .take_while(|byte| *byte == b'\\')
+        .count()
+        % 2
+        == 1
 }
 
 fn authorization_value_span(input: &str, start: usize) -> Option<(usize, usize)> {
@@ -436,6 +480,64 @@ fn looks_like_path_or_url(value: &str) -> bool {
                 && prefix[1] == b':'
                 && matches!(prefix[2], b'/' | b'\\')
         })
+        || looks_like_relative_path(value)
+        || looks_like_schemeless_url(value)
+}
+
+fn looks_like_relative_path(value: &str) -> bool {
+    let components: Vec<_> = value
+        .split('/')
+        .filter(|component| !component.is_empty())
+        .collect();
+    let Some(last) = components.last() else {
+        return false;
+    };
+    components.len() >= 2
+        && (components.iter().any(|component| {
+            matches!(
+                *component,
+                "app"
+                    | "apps"
+                    | "assets"
+                    | "cache"
+                    | "config"
+                    | "configs"
+                    | "docs"
+                    | "lib"
+                    | "scripts"
+                    | "src"
+                    | "test"
+                    | "tests"
+            )
+        }) || plausible_extension(last))
+}
+
+fn looks_like_schemeless_url(value: &str) -> bool {
+    let Some((host, _)) = value.split_once('/') else {
+        return false;
+    };
+    let mut labels = host.split('.');
+    let Some(first) = labels.next() else {
+        return false;
+    };
+    !first.is_empty()
+        && first
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+        && labels.clone().all(|label| {
+            !label.is_empty()
+                && label
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+        })
+        && labels.count() > 0
+}
+
+fn plausible_extension(component: &str) -> bool {
+    component.rsplit_once('.').is_some_and(|(_, extension)| {
+        (2..=8).contains(&extension.len())
+            && extension.bytes().all(|byte| byte.is_ascii_alphanumeric())
+    })
 }
 
 fn read_text(text: Option<String>) -> AppResult<String> {
