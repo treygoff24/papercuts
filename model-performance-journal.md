@@ -171,3 +171,27 @@ Outcome and verification: Updated only manifest and checker. State gates now rej
 Performance observations: 8m33s. Terra again stayed inside ownership and added targeted synthetic cases for every adjudicated failure class. The checker grew to about 440 lines, reflecting explicit input/state validation; a future rewrite should require evidence that this shell implementation is actually the maintenance bottleneck.
 
 Routing assessment: Continue using Terra high for narrow verifier corrections; the strong synthetic matrix materially lowered coordinator burden. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 0 final ship gate
+
+Command and run: `delegate --group papercuts-wave0-final-review codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave0-final-review.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree; run handle: `codex-12`.
+
+Task and expectation: Final blocker/major-only verification of the committed Wave 0 artifacts after the second repair round.
+
+Outcome and verification: CLEAN. It verified fail-closed unsafe envelopes, monotonic multi-log resolution, corrected 13-Claude/3-Codex provenance, mandatory Wave 1 outcomes, early-resolution tolerance, and exact 21-open completion accounting. No edits.
+
+Performance observations: 5m13s. Faster than the earlier broad reviews because the prompt was tightly bounded; it still performed syntax, ShellCheck, count reconciliation, and filing-agent checks in the isolated copy.
+
+Routing assessment: Sol high is an efficient closing judge once the finding set is bounded; use xhigh for broad discovery and high for focused closure. Confidence: high.
+
+## 2026-07-15 - grok-4.5 via grok - Wave 0 final ship gate
+
+Command and run: `delegate --group papercuts-wave0-final-review grok safe --reasoning-effort high --prompt-file /tmp/papercuts-wave0-final-review.md`; alias/variant/effort: `grok-4.5`, high; mode/isolation: safe/temporary worktree; run handle: `grok-3`.
+
+Task and expectation: Independent final blocker/major-only review of the six adjudicated Wave 0 defect classes.
+
+Outcome and verification: CLEAN. It traced each defect through manifest/checker and list/store envelope behavior, including defer-vs-accept semantics and Wave 3 partial shell rows. No edits.
+
+Performance observations: 3m54s. Concise and source-grounded; no-shell limitation was stated. The result converged with Sol after the prior severity divergence.
+
+Routing assessment: Keep direct Grok as the fast independent closing voice beside Sol; convergence after fixes is useful evidence, not a substitute for coordinator runtime checks. Confidence: high.
