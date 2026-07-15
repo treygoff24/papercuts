@@ -20,3 +20,4 @@
   - Codex/Luna: deferred. Run `codex-17` used zsh and BSD tools; no supported shell knob exists. Cut: `pc_86b7ef765ac2`.
   - Cursor/Grok: deferred. Run `cursor-5` used zsh and BSD tools.
   - Direct default Claude sessions must use the new `claude-agent` wrapper until native `BASH_ENV` behavior is proven. The managed `claude` symlink remains untouched.
+- Wave 1.6 hook registration: `~/.claude/settings.json`, `~/.claude-work/settings.json`, and `~/.claude-personal/settings.json` each now have exactly one `PreToolUse` `Agent` registration for `node /Users/treygoff/.claude-shared/hooks/guard-subagent-model.mjs`. The direct registered-command default/deny contract passes. A true native Agent end-to-end invocation was intentionally not run under the Delegate-only constraint; this remains an explicit verification boundary, not a native-execution claim.

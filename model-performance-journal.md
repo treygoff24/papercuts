@@ -388,6 +388,42 @@ Performance observations: 43s. Exact, no scope creep.
 
 Routing assessment: Terra is effective for small evidence-to-document propagation. Confidence: high.
 
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 1 closure review
+
+Command and run: `delegate --cwd /tmp/papercuts-wave1-review.BCpo6K --group papercuts-wave1-closure-review codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave1-closure-review.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/private directory copy; run handle: `codex-4` in the bundle workspace.
+
+Task and expectation: Final blocker/major-only closure audit over shell layers, launchers, originals, staged note, and acceptance matrix.
+
+Outcome and verification: Source/config review passed completely, including literal-dot sanitization, alias preservation, launchers, and GNU/BSD scripts. One major remained: the bundle lacked a per-check Wave 1.6 acceptance artifact for CLI, hook, regression, and credential-presence smokes.
+
+Performance observations: 5m48s. Correctly distinguished clean implementation from incomplete evidence rather than inventing acceptance.
+
+Routing assessment: Use Sol high for final evidence audits; a clean source verdict must not substitute for the plan's named acceptance commands. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 1.6 acceptance artifact
+
+Command and run: `delegate --group papercuts-wave1-acceptance codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave1-acceptance.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place with evidence-artifact ownership; run handle: `codex-21`.
+
+Task and expectation: Rerun and record every named Wave 1.6 smoke with name/boolean-only credential handling and no destructive execution.
+
+Outcome and verification: Created a detailed acceptance artifact. Shell expressions, GNU utilities, papercuts doctor, Delegate models, morning JSON, skill search, hook syntax/direct contracts, profile credential presence, and BSD-vs-GNU separation passed. It correctly discovered the existing documented morning command and avoided a duplicate wrapper. One blocker remained: the subagent-model guard was not registered in live settings.
+
+Performance observations: 8m17s. Thorough, careful with credential output, and explicit about the registration gap rather than overclaiming end-to-end coverage.
+
+Routing assessment: Use Terra high for credential-sensitive acceptance matrices and evidence capture. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 1 hook registration closure
+
+Command and run: `delegate --group papercuts-wave1-hook-register codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave1-hook-register.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place with profile-hook and evidence ownership; run handle: `codex-22`.
+
+Task and expectation: Register the subagent-model guard exactly once in every live Claude profile and close the Wave 1.6 evidence gap without invoking native subagents.
+
+Outcome and verification: Added one Agent PreToolUse registration per profile, preserved existing hooks/settings, retained exact backups, and updated both acceptance/staged artifacts. JSON, counts, hook target/syntax, and direct registered-command allow/rewrite/deny contracts passed. Coordinator confirmed one registration in each profile.
+
+Performance observations: 2m40s. Precise configuration propagation and explicit verification boundary; no credential or native-subagent scope breach.
+
+Routing assessment: Use Terra high for trust-boundary hook registration and evidence closure. Confidence: high.
+
 ## 2026-07-15 - Claude via claude - Wave 1 shell acceptance probe
 
 Command and run: `delegate --group papercuts-wave1-accept claude safe --reasoning-effort low --prompt-file /tmp/papercuts-shell-probe.md`; alias/variant/effort: default Claude, low; mode/isolation: safe/temporary worktree; run handle: `claude-1`.
