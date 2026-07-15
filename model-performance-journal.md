@@ -63,3 +63,15 @@ Routing assessment: Devin remains the SURGEON — findings-shaped fix work route
 ## 2026-07-09 - live acceptance (coordinator-driven)
 
 Release binary driven through the full agent lifecycle in a fresh playground repo: schema self-orientation, harness detection, stdin add, fixed-clock duplicate handling, 12-way concurrent adds (15/15 clean lines), md digest with strikethrough, resolve by prefix + idempotent re-resolve, torn-line self-heal, doctor exit dictionary, explicit-missing=66 vs virtual-empty, home fallback, byte-identical determinism. Zero unexplained failures; the only anomalies were the coordinator's own jq paths against the flattened ListItem shape.
+
+## 2026-07-15 - plan review round (remediation plan r1 → r2)
+
+Two safe lanes on one shared brief (`papercuts-plan-r1` group), plus native opus plan-reviewer, reviewing docs/plans/papercuts-remediation-2026-07-15.md against the 132-cut diagnostic and live code seams.
+
+**Sol xhigh** (`delegate codex safe --model sol --reasoning-effort xhigh`, run del_20260715T154256Z_b6a1a6, ~17 min, resultQuality ok): 10 blockers / 14 risks / 2 nits, deepest of the three. Uniques nobody else found: evidence fields as a credential-persistence hazard in an append-only log; `versionCmd` frontmatter as an untrusted-exec surface; exa no-network guard ordered after credential resolution; exa schema actually sourced from the build-time registry not clap; papercuts AGENTS.md 5× store.rs test mandate; work-mode (not safe) smoke needed for a work-mode default change. One overreach: proposed contract-2 identity including evidence — would destroy dedup-by-text; rejected. Severity anchor held. Routing: keep Sol xhigh as the premier plan-gate lane. Confidence: high.
+
+**Grok 4.5** (`delegate grok safe`, run del_20260715T154258Z_2375e6, ~4.5 min, resultQuality ok — no empty-envelope recurrence): 5 blockers / 14 risks / 7 nits, fast and dense. Convergent on all the real killers (BASH_ENV, interactive-zsh contamination, dirty/non-git worktree, first-resolve-wins, 4↔5 cycle, skill-library sweep roots). Distinct value: instruction-surface ownership collisions, retention policy, materialization bounds, per-harness end-state formula. Coordinator initially mis-rejected its `.zshenv` finding after a flawed regex re-check — Grok had read the file correctly; lesson recorded: verify with full-file reads, not anchored regexes, before overruling a lane. Routing: grok lane fully credible as the second plan-gate voice when cursor is quota-limited. Confidence: high.
+
+**Native plan-reviewer (opus)**: 2 blockers / 6 risks / 4 nits; smallest set but earliest to the BASH_ENV blocker with the settings.json evidence, and the only lane to flag `skip_serializing_if`. Went idle once before delivering; one SendMessage ping recovered it (known behavior).
+
+Convergence pattern matched the standing-pair thesis: ~40% overlap on blockers, uniques decorrelated. All three lanes' convergent findings survived verification; two unique findings were rejected with reasons (Sol contract-2, and nothing from Grok after the .zshenv reversal).
