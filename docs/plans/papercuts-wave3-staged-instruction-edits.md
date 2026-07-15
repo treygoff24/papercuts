@@ -1,4 +1,4 @@
-# Wave 1 staged instruction edits
+# Wave 1/3 staged instruction edits
 
 - Attach `--cmd/--exit/--stderr-file` when filing tool failures.
 
@@ -23,3 +23,9 @@
   - Cursor/Grok: deferred. Run `cursor-5` used zsh and BSD tools.
   - Direct default Claude sessions must use the new `claude-agent` wrapper until native `BASH_ENV` behavior is proven. The managed `claude` symlink remains untouched.
 - Wave 1.6 hook registration: `~/.claude/settings.json`, `~/.claude-work/settings.json`, and `~/.claude-personal/settings.json` each now have exactly one `PreToolUse` `Agent` registration for `node /Users/treygoff/.claude-shared/hooks/guard-subagent-model.mjs`. The direct registered-command default/deny contract passes. A true native Agent end-to-end invocation was intentionally not run under the Delegate-only constraint; this remains an explicit verification boundary, not a native-execution claim.
+
+## Wave 3 applied (2026-07-15)
+
+- Applied once through the canonical Claude source (`~/.claude-shared/CLAUDE.md`, used by both Claude symlinks) and `~/.codex/AGENTS.md`: shell environment/defer boundary, filing evidence, doctor `--online`, and planned Delegate isolation wording.
+- Added the one shared shell recipe at `~/.claude-shared/rules/shell-footguns.md`; Codex references it rather than copying it.
+- Applied local notes in the memoryd decision packet, PACT guidance, Gavel guidance, Radar staged guidance, and papercuts AGENTS. The OPM recipe remains open pending a live complete-part-set proof; Radar `test:web:file` remains Wave 7-owned.

@@ -819,3 +819,15 @@ Outcome and verification: Cancelled before completion under Trey's explicit inst
 Performance observations: The run had substantial read-only output but had not finalized findings.
 
 Routing assessment: Do not treat as review evidence. Confidence: high in the cancellation record.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 3 instruction-surface implementation
+
+Command and run: `delegate --group papercuts-wave3 codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave3.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place across live home and local repos; run handle: `codex-43`.
+
+Task and expectation: Implement the single-owner Wave 3 shell-footguns rule, global staged instruction edits, named local guidance fixes, manifest/log reconciliation, and acceptance evidence without touching future-wave code.
+
+Outcome and verification: Added a 15-line shared shell-footguns rule, updated canonical Claude and Codex guidance while preserving symlinks, added scoped local notes for memoryd, papercuts, PACT, Gavel, and staged Radar guidance, and resolved one verifiable cut plus two live process cuts atomically. Cargo build/tests, strict clippy, fmt, JSON checks, shell smokes, and diff check passed. Full manifest state cannot pass because only 3 of 132 frozen source events are present in locally available logs; absent IDs were not falsely resolved.
+
+Performance observations: 12m1s. Thorough cross-repo execution with good restraint at the missing-source-log boundary. The reconciliation limitation requires coordinator review of log discovery before Wave 3 closure.
+
+Routing assessment: Terra high is effective for broad instruction-surface batches with exact ownership and verification constraints. Confidence: high.

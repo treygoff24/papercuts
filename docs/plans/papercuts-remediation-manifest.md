@@ -328,3 +328,16 @@ from the frozen report; post-snapshot cuts never count as snapshot drift.
 | `pc_b66efae3997d` | `fix` | `7` | `stays-open-trey-task` |
 | `pc_ca10740db917` | `resolved` | `8` | `already-resolved` |
 | `pc_55fb196ef6ee` | `resolved` | `8` | `already-resolved` |
+
+## Wave 3 execution reconciliation (2026-07-15)
+
+The shared and local instruction evidence is recorded in
+`docs/reviews/papercuts-wave3-acceptance-2026-07-15.md`. The available
+append-only log contains only `pc_6ffe1c95444b`, which is resolved after its
+local acceptance evidence. Do not synthesize missing cut events: the remaining
+Wave 3 IDs stay open until their source logs are recovered and can be resolved
+through `papercuts resolve`.
+
+`pc_b8fe2e571b1f` remains open because the live OPM lookup did not prove a
+complete latest part set. `pc_b37f54ccfbe6` remains Wave 7-owned until the
+`test:web:file` script exists; its current typecheck guidance is staged only.
