@@ -195,3 +195,27 @@ Outcome and verification: CLEAN. It traced each defect through manifest/checker 
 Performance observations: 3m54s. Concise and source-grounded; no-shell limitation was stated. The result converged with Sol after the prior severity divergence.
 
 Routing assessment: Keep direct Grok as the fast independent closing voice beside Sol; convergence after fixes is useful evidence, not a substitute for coordinator runtime checks. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 1 Delegate shell inheritance probe
+
+Command and run: `delegate --json codex call --read-only --model luna --reasoning-effort low --timeout 120 <identity probe>`; alias/variant/effort: `luna`, low; mode/isolation: call/read-only throwaway; run handle: untracked call.
+
+Task and expectation: Inherit `SHELL=/opt/homebrew/bin/bash` and `BASH_ENV=~/.config/agent-shell/agent.sh`, execute one identity command, and return only shell plus `sed`/`awk` paths without reading environment values.
+
+Outcome and verification: Delegate returned succeeded JSON, but no prescribed identity line. The child therefore did not prove shell inheritance; no edits or credential output occurred.
+
+Performance observations: About 17 seconds end-to-end. It completed reliably but did not satisfy the strict terminal-output contract, so coordinator verification burden remained unresolved.
+
+Routing assessment: Do not use a stateless Luna call as evidence of child-shell inheritance. Retry with a harness mode that guarantees a shell execution transcript before relying on it; confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 1 agent shell flip
+
+Command and run: `delegate --group papercuts-wave1 codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave1.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place with explicit live home-file ownership; run handle: `codex-13`.
+
+Task and expectation: Implement the Bash 5 and agent-scoped GNU userland flip while preserving all existing environment-loading semantics, sweeping BSD-only scripts, and producing a name-only acceptance matrix.
+
+Outcome and verification: Created the shared POSIX environment and agent shell layers, reduced `.zshenv` to one source line, added a POSIX secrets loader, set Claude's SHELL/BASH_ENV keys, installed gawk/findutils/grep, fixed four live BSD-first scripts, and staged Wave 3 instruction notes. Local Bash/GNU regression checks, credential-presence checks, hooks, papercuts/delegate/skill diagnostics, and Rust tests passed. Claude, Codex, and Delegate child identity remained explicitly deferred rather than overstated.
+
+Performance observations: 13m22s. Strong scope discipline on credential-adjacent files: no values were printed and the original files were retained in a private temp backup. It attempted the minimum empirical Claude and Delegate probes, reported their evidence gaps honestly, and filed a Codex papercut when no supported knob was found.
+
+Routing assessment: Terra high is suitable for live configuration migrations with exact preservation constraints, provided the coordinator independently reviews the retained backup and owns external-harness acceptance. Confidence: high.
