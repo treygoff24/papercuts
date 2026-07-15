@@ -327,3 +327,39 @@ Outcome and verification: Updated env.sh, agent.sh, and staged note. Synthetic p
 Performance observations: 2m56s. Fast, correctly bounded, no credential inspection, and no scope creep.
 
 Routing assessment: Terra high is the preferred closeout lane for small trust-boundary shell corrections. Confidence: high.
+
+## 2026-07-15 - Claude via claude - Wave 1 shell acceptance probe
+
+Command and run: `delegate --group papercuts-wave1-accept claude safe --reasoning-effort low --prompt-file /tmp/papercuts-shell-probe.md`; alias/variant/effort: default Claude, low; mode/isolation: safe/temporary worktree; run handle: `claude-1`.
+
+Task and expectation: Execute one identity-only shell command and accept only Homebrew Bash 5 plus GNU sed/awk.
+
+Outcome and verification: Probe completed in `/bin/zsh`; Bash version was absent and sed/awk resolved to `/usr/bin`. `accepted=no`; no files read or changed.
+
+Performance observations: 21s, exact output contract, no secret exposure. It proves the Claude settings env keys do not reach this Delegate-driven Claude command shell.
+
+Routing assessment: Use this lane again for fast Claude harness acceptance after a launcher fix; current configuration is not accepted. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 1 shell acceptance probe
+
+Command and run: `delegate --group papercuts-wave1-accept codex safe --model luna --reasoning-effort low --prompt-file /tmp/papercuts-shell-probe.md`; alias/variant/effort: `luna`, low; mode/isolation: safe/temporary worktree; run handle: `codex-17`.
+
+Task and expectation: Execute the same identity-only probe for the Codex harness.
+
+Outcome and verification: Bash was absent and sed/awk resolved to BSD paths; `ps` was sandbox-blocked, but the remaining evidence is sufficient for `accepted=no`. No edits.
+
+Performance observations: 15s. It followed the output contract better than the earlier stateless call and honestly reported the sandbox limitation.
+
+Routing assessment: Use Luna safe rather than call for shell-transcript probes; Codex remains deferred because no supported shell knob is proven. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 1 shell acceptance probe
+
+Command and run: `delegate --group papercuts-wave1-accept cursor safe --prompt-file /tmp/papercuts-shell-probe.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree; run handle: `cursor-5`.
+
+Task and expectation: Execute the same identity-only probe for the Cursor/Grok harness.
+
+Outcome and verification: Probe ran under `/bin/zsh` with no Bash version and BSD sed/awk; `accepted=no`. No edits.
+
+Performance observations: 24s. Accurate and concise.
+
+Routing assessment: Reuse after any Delegate-wide launcher/environment change; current Cursor/Grok command shell remains deferred. Confidence: high.
