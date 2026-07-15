@@ -163,7 +163,7 @@ fn evidence_redaction_handles_boundary_headers_unicode_json_and_cli_options() {
     std::fs::write(
         &stderr_file,
         format!(
-            "{}Authorization: Basic {secret}\ncontext=kept",
+            "{}\nAuthorization: Basic {secret}\ncontext=kept",
             "x".repeat(4092)
         ),
     )
@@ -247,6 +247,119 @@ fn evidence_redaction_handles_boundary_headers_unicode_json_and_cli_options() {
     assert!(note.contains(path));
 }
 
+#[test]
+fn evidence_redacts_common_compound_names_in_stdout_and_jsonl() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let input = "DB_PASSWORD=value-one client_secret=value-two \"access_token\":\"value-three\" --client-secret value-four api_key=value-five monkey=keep keynotes=keep tokenized=keep";
+    let expected = "DB_PASSWORD=<redacted> client_secret=<redacted> \"access_token\":\"<redacted>\" --client-secret <redacted> api_key=<redacted> monkey=keep keynotes=keep tokenized=keep";
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args([
+            "add",
+            "compound names",
+            "--agent",
+            "tester",
+            "--evidence",
+            input,
+        ])
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    assert_eq!(
+        added.data.record.evidence.as_ref().unwrap().note.as_deref(),
+        Some(expected)
+    );
+    let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
+    let stored: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(stored["evidence"]["note"], expected);
+}
+
+#[test]
+fn evidence_redacts_slash_base64_but_keeps_structural_paths_and_urls() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let base64 = "Q2hhbmdlTWVOb3RVcmxPclBhdGgxMjM0NTY3ODkw+/==";
+    let posix_path = "/var/tmp/AbCdEf0123456789GhIjKlMnOpQrStUv.log";
+    let windows_path = r"C:\\Temp\\AbCdEf0123456789GhIjKlMnOpQrStUv.log";
+    let url = "https://example.test/a/AbCdEf0123456789GhIjKlMnOpQrStUv";
+    let input = format!("payload={base64} posix={posix_path} windows={windows_path} url={url}");
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args(["add", "base64 evidence", "--agent", "tester", "--evidence"])
+        .arg(&input)
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    let expected =
+        format!("payload=<redacted> posix={posix_path} windows={windows_path} url={url}");
+    assert_eq!(
+        added.data.record.evidence.as_ref().unwrap().note.as_deref(),
+        Some(expected.as_str())
+    );
+    let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
+    let stored: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(stored["evidence"]["note"], expected);
+}
+
+#[test]
+fn evidence_preserves_url_query_fragment_tails_and_closing_quotes() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let input = "url=https://example.test/?access_token=value-one&safe=tail#fragment authorization=Bearer \"value-two\"&safe=tail#fragment bearer \"value-three\"&safe=tail";
+    let expected = "url=https://example.test/?access_token=<redacted>&safe=tail#fragment authorization=<redacted>&safe=tail#fragment bearer \"<redacted>\"&safe=tail";
+    let added: SuccessEnvelope<AddData> = success(
+        &command()
+            .arg("--file")
+            .arg(&file)
+            .args([
+                "add",
+                "query tails",
+                "--agent",
+                "tester",
+                "--evidence",
+                input,
+            ])
+            .output()
+            .unwrap(),
+    );
+    assert_eq!(
+        added.data.record.evidence.unwrap().note.as_deref(),
+        Some(expected)
+    );
+}
+
+#[test]
+fn evidence_redacts_authorization_variants_without_boundary_false_positives() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let input = "authorization=Bearer secret&safe=tail authorization=Bearer \"secret\"&safe=tail authorization=Basic secret&safe=tail authorization=Basic \"secret\"&safe=tail \"authorization\":\"Bearer secret\" notAuthorization=keep";
+    let expected = "authorization=<redacted>&safe=tail authorization=<redacted>&safe=tail authorization=<redacted>&safe=tail authorization=<redacted>&safe=tail \"authorization\":\"<redacted>\" notAuthorization=keep";
+    let added: SuccessEnvelope<AddData> = success(
+        &command()
+            .arg("--file")
+            .arg(&file)
+            .args([
+                "add",
+                "authorization variants",
+                "--agent",
+                "tester",
+                "--evidence",
+            ])
+            .arg(input)
+            .output()
+            .unwrap(),
+    );
+    assert_eq!(
+        added.data.record.evidence.unwrap().note.as_deref(),
+        Some(expected)
+    );
+}
+
 #[cfg(unix)]
 #[test]
 fn stderr_file_requires_a_regular_file_and_follows_regular_file_symlinks() {
@@ -278,15 +391,34 @@ fn stderr_file_requires_a_regular_file_and_follows_regular_file_symlinks() {
         .status()
         .is_ok_and(|status| status.success());
     if made_fifo {
-        let rejected = run_file(
-            &file,
-            &[
+        let mut child = std::process::Command::new(assert_cmd::cargo::cargo_bin!("papercuts"))
+            .env("PAPERCUTS_NOW", NOW)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .arg("--file")
+            .arg(&file)
+            .args([
                 "add",
                 "fifo evidence",
                 "--stderr-file",
                 fifo.to_str().unwrap(),
-            ],
-        );
+            ])
+            .spawn()
+            .unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
+        let status = loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                break status;
+            }
+            if std::time::Instant::now() >= deadline {
+                child.kill().unwrap();
+                child.wait().unwrap();
+                panic!("FIFO evidence read blocked");
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        };
+        assert_eq!(status.code(), Some(65));
+        let rejected = child.wait_with_output().unwrap();
         let envelope = error(&rejected, 65, "invalid_input");
         assert!(envelope.error.message.contains("not a regular file"));
         assert!(envelope.error.suggested_fix.contains("FIFOs and devices"));
@@ -715,6 +847,16 @@ fn multi_resolve_is_atomic_deterministic_and_idempotent() {
             .collect::<Vec<_>>()
     );
     for event in &events {
+        assert_eq!(
+            event
+                .as_object()
+                .unwrap()
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            ["agent", "id", "kind", "note", "ts"]
+        );
+        assert_eq!(event["ts"], "2026-07-09T18:30:00.123Z");
         assert_eq!(event["agent"], "fixer");
         assert_eq!(event["note"], "batch");
     }

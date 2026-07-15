@@ -5,8 +5,13 @@ use crate::store;
 use crate::{CutRecord, Evidence, compute_id, format_timestamp, resolve_agent};
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
+#[cfg(not(unix))]
 use std::fs::File;
+#[cfg(unix)]
+use std::fs::OpenOptions;
 use std::io::{IsTerminal, Read};
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::PathBuf;
 
 const STDERR_INPUT_LIMIT: u64 = 1024 * 1024;
@@ -135,10 +140,19 @@ fn build_evidence(args: &AddArgs) -> AppResult<Option<Evidence>> {
 }
 
 fn read_stderr(path: &std::path::Path) -> AppResult<String> {
-    // `metadata` follows a symlink, so a symlink to a regular file is accepted and a
-    // symlink to a FIFO/device is rejected before opening the target for reading.
-    let metadata =
-        std::fs::metadata(path).map_err(|error| AppError::from_evidence_file(error, path))?;
+    // Opening first makes the handle, rather than a path lookup, the object we validate.
+    // OpenOptions follows symlinks, preserving the accepted symlink-to-regular-file policy.
+    #[cfg(unix)]
+    let mut file = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NONBLOCK)
+        .open(path)
+        .map_err(|error| AppError::from_evidence_file(error, path))?;
+    #[cfg(not(unix))]
+    let mut file = File::open(path).map_err(|error| AppError::from_evidence_file(error, path))?;
+    let metadata = file
+        .metadata()
+        .map_err(|error| AppError::from_evidence_file(error, path))?;
     if !metadata.is_file() {
         return Err(AppError::invalid_input(
             format!(
@@ -158,7 +172,6 @@ fn read_stderr(path: &std::path::Path) -> AppResult<String> {
             "Pass a smaller stderr file to --stderr-file PATH; stored sanitized stderr is capped at 4096 bytes.",
         ));
     }
-    let mut file = File::open(path).map_err(|error| AppError::from_evidence_file(error, path))?;
     let mut bytes = Vec::new();
     file.by_ref()
         .take(STDERR_INPUT_LIMIT + 1)
@@ -281,18 +294,23 @@ fn sensitive_key(input: &str, start: usize) -> Option<(usize, &'static str, bool
             .map_or(rest.len(), |(index, _)| index);
         (&rest[..length], start + length, false)
     };
-    let normalized = raw
-        .chars()
-        .filter(|character| *character != '_' && *character != '-')
-        .flat_map(char::to_lowercase)
-        .collect::<String>();
+    let normalized = raw.to_ascii_lowercase();
     let key = match normalized.as_str() {
         "authorization" => "authorization",
-        "password" => "password",
-        "secret" => "secret",
-        "token" => "token",
         "bearer" => "bearer",
-        "key" | "apikey" => "key",
+        "apikey" => "key",
+        _ if normalized
+            .split(['_', '-'])
+            .any(|segment| segment == "authorization") =>
+        {
+            "authorization"
+        }
+        _ if normalized.split(['_', '-']).any(|segment| {
+            matches!(segment, "password" | "passwd" | "secret" | "token" | "key")
+        }) =>
+        {
+            "key"
+        }
         _ => return None,
     };
     Some((end, key, option))
@@ -324,21 +342,33 @@ fn value_span(input: &str, start: usize) -> Option<(usize, usize)> {
     }
     let end = input[start..]
         .char_indices()
-        .find(|(_, character)| character.is_ascii_whitespace() || ",;)]}".contains(*character))
+        .find(|(_, character)| character.is_ascii_whitespace() || ",;)]}&#\"'".contains(*character))
         .map_or(input.len(), |(offset, _)| start + offset);
     (start < end).then_some((start, end))
 }
 
 fn authorization_value_span(input: &str, start: usize) -> Option<(usize, usize)> {
+    let first = input[start..].chars().next()?;
+    if matches!(first, '\'' | '"') {
+        return value_span(input, start);
+    }
     let scheme_end = input[start..]
         .char_indices()
         .find(|(_, character)| character.is_whitespace())
         .map_or(input.len(), |(offset, _)| start + offset);
     let scheme = &input[start..scheme_end];
     if scheme.eq_ignore_ascii_case("basic") || scheme.eq_ignore_ascii_case("bearer") {
-        let value_start = skip_spaces(input, scheme_end);
-        let (_, value_end) = value_span(input, value_start)?;
-        return Some((start, value_end));
+        let credential_start = skip_spaces(input, scheme_end);
+        let credential_quote = input[credential_start..].chars().next()?;
+        let (_, credential_end) = value_span(input, credential_start)?;
+        let end = if matches!(credential_quote, '\'' | '"')
+            && input[credential_end..].starts_with(credential_quote)
+        {
+            credential_end + credential_quote.len_utf8()
+        } else {
+            credential_end
+        };
+        return Some((start, end));
     }
     value_span(input, start)
 }
@@ -350,36 +380,62 @@ fn high_entropy_spans(input: &str) -> Vec<(usize, usize)> {
         .char_indices()
         .chain(std::iter::once((input.len(), ' ')))
     {
-        let token_character = character.is_ascii_alphanumeric() || "_-./+=\\".contains(character);
+        let token_character = character.is_ascii_alphanumeric() || "_-./+=\\:".contains(character);
         if token_character && start.is_none() {
             start = Some(index);
         } else if !token_character && let Some(token_start) = start.take() {
             let token = &input[token_start..index];
-            let unique = token
+            let (value_start, value) = token
+                .split_once('=')
+                .filter(|(name, _)| {
+                    !name.is_empty()
+                        && name.bytes().all(|byte| {
+                            byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-'
+                        })
+                })
+                .map_or((token_start, token), |(name, value)| {
+                    (token_start + name.len() + 1, value)
+                });
+            let unique = value
                 .bytes()
                 .collect::<std::collections::HashSet<_>>()
                 .len();
             let categories = [
-                token.bytes().any(|byte| byte.is_ascii_lowercase()),
-                token.bytes().any(|byte| byte.is_ascii_uppercase()),
-                token.bytes().any(|byte| byte.is_ascii_digit()),
-                token.bytes().any(|byte| !byte.is_ascii_alphanumeric()),
+                value.bytes().any(|byte| byte.is_ascii_lowercase()),
+                value.bytes().any(|byte| byte.is_ascii_uppercase()),
+                value.bytes().any(|byte| byte.is_ascii_digit()),
+                value.bytes().any(|byte| !byte.is_ascii_alphanumeric()),
             ]
             .into_iter()
             .filter(|present| *present)
             .count();
-            if !token.contains('/')
-                && !token.contains('\\')
-                && token.len() >= 24
+            if !looks_like_path_or_url(value)
+                && value.len() >= 24
                 && unique >= 12
                 && (categories >= 3
-                    || (categories >= 2 && token.bytes().any(|byte| byte.is_ascii_digit())))
+                    || (categories >= 2 && value.bytes().any(|byte| byte.is_ascii_digit())))
             {
-                spans.push((token_start, index));
+                spans.push((value_start, index));
             }
         }
     }
     spans
+}
+
+fn looks_like_path_or_url(value: &str) -> bool {
+    let lower = value.to_ascii_lowercase();
+    lower.starts_with("http://")
+        || lower.starts_with("https://")
+        || lower.starts_with("file://")
+        || value.starts_with('/')
+        || value.starts_with("./")
+        || value.starts_with("../")
+        || value.starts_with("\\\\")
+        || value.as_bytes().get(0..3).is_some_and(|prefix| {
+            prefix[0].is_ascii_alphabetic()
+                && prefix[1] == b':'
+                && matches!(prefix[2], b'/' | b'\\')
+        })
 }
 
 fn read_text(text: Option<String>) -> AppResult<String> {

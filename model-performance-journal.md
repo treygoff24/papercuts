@@ -519,3 +519,51 @@ Outcome and verification: Reworked evidence reading to reject non-regular or ove
 Performance observations: 9m51s. Comprehensive and responsive to adversarial findings. The patch is larger than ideal because the table-driven trust-boundary tests dominate the diff; coordinator review and a fresh dual-review closure gate remain necessary.
 
 Routing assessment: Terra high is effective for security-focused Rust repair passes after specific review findings. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 2 closure review, second pass
+
+Command and run: `delegate --group papercuts-wave2-closure codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree; run handle: `codex-26`.
+
+Task and expectation: Re-review the complete Wave 2 range after Terra's first security repair, independently attacking redaction, bounded evidence input, exact persistence shapes, and multi-resolve behavior.
+
+Outcome and verification: Not clean. Found two credible remaining leaks: compound secret names such as `DB_PASSWORD` and `client_secret`, and slash-bearing standard Base64 tokens excluded by the path-preservation heuristic. Also found URL-tail over-redaction, metadata/open TOCTOU, and insufficiently exact appended-event assertions. No files changed.
+
+Performance observations: 5m22s. High-value second-order review that defeated the first heuristic repair without re-reporting already closed issues. Concrete reproducers made severity adjudication straightforward.
+
+Routing assessment: Keep Sol high as the primary closure authority for redaction trust boundaries; a green Grok lane alone is insufficient. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 2 closure review, second pass
+
+Command and run: `delegate --group papercuts-wave2-closure cursor safe --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree; run handle: `cursor-7`.
+
+Task and expectation: Independently re-review the complete Wave 2 range and probe evidence, error, compatibility, and multi-resolve behavior.
+
+Outcome and verification: Reported clean of blocker/major and corroborated four minors: quote/query terminators, stderr metadata/open TOCTOU, and exact appended-event key assertions. It also noted compound secret names as a residual best-effort limit, which Sol correctly elevated because the public trust-boundary promise covers common assignment forms. No files changed.
+
+Performance observations: 3m6s. Useful live probes and quick corroboration, but it under-ranked a common credential-name bypass and did not catch slash-bearing Base64 leakage.
+
+Routing assessment: Use Grok for breadth and empirical probes, not as sole security closure authority. Confidence: medium-high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 2 second security repair
+
+Command and run: `delegate --group papercuts-wave2-fix2 codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2-fix2.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place; run handle: `codex-27`.
+
+Task and expectation: Close compound credential-name and slash-bearing Base64 leaks, preserve URL query tails and quotes, eliminate the FIFO metadata/open race, and make persisted resolve-event assertions exact.
+
+Outcome and verification: Added compound sensitive-segment matching, structural path/URL discrimination, exact query/quote span handling, Unix nonblocking open plus opened-handle metadata validation, and exact persistence regressions. Added a direct `libc` dependency for portable `O_NONBLOCK`. Terra reported fmt, clippy, release build, diff check, and five full test passes green with 36 CLI tests.
+
+Performance observations: 6m55s. Focused repair with narrow production changes and test-heavy coverage. The direct dependency is justified by the cross-platform flag constant and should be reviewed for minimality.
+
+Routing assessment: Terra high remains the preferred fix lane for concrete redaction and Unix I/O findings. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 2 quote and boundary correction
+
+Command and run: `delegate --group papercuts-wave2-quote-fix codex work --model luna --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2-quote-fix.md`; alias/variant/effort: `luna`, high; mode/isolation: work/in-place; run handle: `codex-28`.
+
+Task and expectation: Correct a coordinator-found dangling quote in Authorization scheme sanitization and remove or justify a case-sensitive embedded-key boundary bypass.
+
+Outcome and verification: Fixed Basic/Bearer quoted and unquoted sanitization so benign tails remain coherent, removed the suspicious boundary bypass, added exact positive and negative cases, and logged one test-authoring papercut. Luna reported fmt, strict clippy, release build, full tests, and diff check green.
+
+Performance observations: 5m16s. Careful small-scope correction with stronger exact-output coverage than the first repair. Slower than expected for the size, but it caught related JSON/header variants.
+
+Routing assessment: Luna high is suitable for bounded follow-up corrections after coordinator diff inspection. Confidence: high.

@@ -357,6 +357,7 @@ dependencies = [
  "assert_cmd",
  "clap",
  "jiff",
+ "libc",
  "serde",
  "serde_json",
  "sha2",
