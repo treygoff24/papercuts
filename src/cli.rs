@@ -47,6 +47,18 @@ pub struct AddArgs {
     pub tags: Vec<String>,
     #[arg(long, value_enum, default_value_t = Severity::Minor)]
     pub severity: Severity,
+    #[arg(long, value_name = "TEXT", help = "Command that failed")]
+    pub cmd: Option<String>,
+    #[arg(long = "exit", value_name = "N", help = "Command exit status")]
+    pub exit_code: Option<i32>,
+    #[arg(
+        long,
+        value_name = "PATH",
+        help = "Read stderr from PATH at filing time"
+    )]
+    pub stderr_file: Option<PathBuf>,
+    #[arg(long, value_name = "TEXT", help = "Additional evidence or filing note")]
+    pub evidence: Option<String>,
     #[arg(long)]
     pub dry_run: bool,
 }
@@ -71,8 +83,13 @@ pub struct ListArgs {
 
 #[derive(Debug, Args)]
 pub struct ResolveArgs {
-    #[arg(value_name = "ID")]
-    pub id: String,
+    #[arg(
+        value_name = "ID",
+        num_args = 1..,
+        required = true,
+        help = "One or more IDs or unique prefixes"
+    )]
+    pub ids: Vec<String>,
     #[arg(long)]
     pub note: Option<String>,
     #[arg(long)]

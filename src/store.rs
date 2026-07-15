@@ -178,6 +178,29 @@ pub fn append_json<T: serde::Serialize>(
     prior: &[u8],
     record: &T,
 ) -> AppResult<()> {
+    let mut record_bytes = Vec::new();
+    serde_json::to_writer(&mut record_bytes, record)
+        .map_err(|error| AppError::internal(error.to_string()))?;
+    record_bytes.push(b'\n');
+    append_bytes(file, path, prior, &record_bytes)
+}
+
+pub fn append_json_batch<T: serde::Serialize>(
+    file: &mut File,
+    path: &Path,
+    prior: &[u8],
+    records: &[T],
+) -> AppResult<()> {
+    let mut record_bytes = Vec::new();
+    for record in records {
+        serde_json::to_writer(&mut record_bytes, record)
+            .map_err(|error| AppError::internal(error.to_string()))?;
+        record_bytes.push(b'\n');
+    }
+    append_bytes(file, path, prior, &record_bytes)
+}
+
+fn append_bytes(file: &mut File, path: &Path, prior: &[u8], record_bytes: &[u8]) -> AppResult<()> {
     let original_len = file
         .metadata()
         .map_err(|error| AppError::from_io(error, path))?
@@ -186,9 +209,7 @@ pub fn append_json<T: serde::Serialize>(
     if !prior.is_empty() && !prior.ends_with(b"\n") {
         bytes.push(b'\n');
     }
-    serde_json::to_writer(&mut bytes, record)
-        .map_err(|error| AppError::internal(error.to_string()))?;
-    bytes.push(b'\n');
+    bytes.extend_from_slice(record_bytes);
     // If the write fails, roll back to the pre-write length; if rollback also fails, surface both.
     if let Err(error) = file.write_all(&bytes) {
         if let Err(rollback) = file.set_len(original_len) {

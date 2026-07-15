@@ -436,6 +436,18 @@ Performance observations: 4m50s. Efficient final evidence audit; secrecy boundar
 
 Routing assessment: Wave 1 is closed. Use the same sanitized-bundle plus Sol-high pattern for future credential-adjacent environment migrations. Confidence: high.
 
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 2 papercuts tooling
+
+Command and run: `delegate --group papercuts-wave2 codex work --model luna --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2.md`; alias/variant/effort: `luna`, high; mode/isolation: work/in-place; run handle: `codex-23`.
+
+Task and expectation: Implement evidence capture/redaction, multi-ID atomic resolve, resolution/duplicate warnings, public schema/docs, and full Rust gates.
+
+Outcome and verification: Implemented the full Wave 2 surface across CLI, add/resolve/schema, store batch append, black-box tests, README, design amendments, and staged guidance. Coordinator independently ran release build, clippy with warnings denied, fmt, five full test passes, and diff check; all green with 29 tests.
+
+Performance observations: 14m31s. Large but coherent diff, no scope creep, and it honored the five-run concurrency gate. Redaction is explicitly best-effort; bounded stderr truncation and UTF-8 behavior are covered.
+
+Routing assessment: Luna high is effective for pre-specified Rust CLI implementation, but the 580-line diff requires fresh adversarial review before closure. Confidence: high.
+
 ## 2026-07-15 - Claude via claude - Wave 1 shell acceptance probe
 
 Command and run: `delegate --group papercuts-wave1-accept claude safe --reasoning-effort low --prompt-file /tmp/papercuts-shell-probe.md`; alias/variant/effort: default Claude, low; mode/isolation: safe/temporary worktree; run handle: `claude-1`.

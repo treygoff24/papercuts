@@ -13,13 +13,23 @@ pub struct ResolveData {
     pub record: ListItem,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResolveManyData {
+    pub changed: bool,
+    pub records: Vec<ListItem>,
+}
+
 pub fn run(
     args: ResolveArgs,
     file: Option<PathBuf>,
     pretty: bool,
     now: Timestamp,
 ) -> AppResult<i32> {
-    let prefix = normalize_prefix(&args.id)?;
+    let prefixes: Vec<_> = args
+        .ids
+        .iter()
+        .map(|id| normalize_prefix(id))
+        .collect::<AppResult<_>>()?;
     let resolved = store::discover(file)?;
     if args
         .agent
@@ -34,37 +44,70 @@ pub fn run(
     let (agent, source) = resolve_agent(args.agent);
     let ts = format_timestamp(now);
     let note = args.note;
-    let action = |log: &mut std::fs::File| -> AppResult<(bool, bool, ListItem)> {
+    let many = args.ids.len() > 1;
+    let action = |log: &mut std::fs::File| -> AppResult<(bool, bool, Vec<ListItem>)> {
         let bytes = store::read_bytes(log, &resolved.path)?;
         let folded = store::fold_bytes(&bytes);
-        let id = match_id(&prefix, &folded.items)?;
-        let mut item = folded
-            .items
-            .into_iter()
-            .find(|item| item.cut.id == id)
-            .ok_or_else(|| AppError::internal("matched papercut disappeared during resolution"))?;
-        if item.status == ItemStatus::Resolved {
-            return Ok((false, true, item));
-        }
-        item.status = ItemStatus::Resolved;
-        item.resolution = Some(Resolution {
-            ts: ts.clone(),
-            agent: agent.clone(),
-            note: note.clone(),
-        });
+        let mut ids = prefixes
+            .iter()
+            .map(|prefix| match_id(prefix, &folded.items))
+            .collect::<AppResult<Vec<_>>>()?;
+        ids.sort();
+        ids.dedup();
+        let mut items = ids
+            .iter()
+            .map(|id| {
+                folded
+                    .items
+                    .iter()
+                    .find(|item| item.cut.id == *id)
+                    .cloned()
+                    .ok_or_else(|| {
+                        AppError::internal("matched papercut disappeared during resolution")
+                    })
+            })
+            .collect::<AppResult<Vec<_>>>()?;
+        let already_resolved = items.iter().any(|item| item.status == ItemStatus::Resolved);
+        let mut changed = false;
         if !args.dry_run {
-            let event = ResolveRecord {
-                kind: "resolve".into(),
-                id,
-                ts: ts.clone(),
-                agent: agent.clone(),
-                note: note.clone(),
-            };
-            store::append_json(log, &resolved.path, &bytes, &event)?;
+            let mut events = Vec::new();
+            for (id, item) in ids.iter().zip(items.iter_mut()) {
+                if item.status == ItemStatus::Resolved {
+                    continue;
+                }
+                item.status = ItemStatus::Resolved;
+                item.resolution = Some(Resolution {
+                    ts: ts.clone(),
+                    agent: agent.clone(),
+                    note: note.clone(),
+                });
+                events.push(ResolveRecord {
+                    kind: "resolve".into(),
+                    id: id.clone(),
+                    ts: ts.clone(),
+                    agent: agent.clone(),
+                    note: note.clone(),
+                });
+            }
+            if !events.is_empty() {
+                store::append_json_batch(log, &resolved.path, &bytes, &events)?;
+                changed = true;
+            }
+        } else {
+            for item in &mut items {
+                if item.status == ItemStatus::Open {
+                    item.status = ItemStatus::Resolved;
+                    item.resolution = Some(Resolution {
+                        ts: ts.clone(),
+                        agent: agent.clone(),
+                        note: note.clone(),
+                    });
+                }
+            }
         }
-        Ok((!args.dry_run, false, item))
+        Ok((changed, already_resolved, items))
     };
-    let (changed, already_resolved, record) = match if args.dry_run {
+    let (changed, already_resolved, records) = match if args.dry_run {
         store::with_shared(&resolved.path, action)
     } else {
         store::with_exclusive(&resolved.path, false, action)
@@ -87,8 +130,20 @@ pub fn run(
         meta.warnings
             .push("dry run; no resolve event appended".into());
     }
-    output::write_success(ResolveData { changed, record }, pretty, meta)
+    if !many {
+        output::write_success(
+            ResolveData {
+                changed,
+                record: records.into_iter().next().expect("one record"),
+            },
+            pretty,
+            meta,
+        )
         .map_err(|error| AppError::from_io(error, std::path::Path::new("stdout")))?;
+    } else {
+        output::write_success(ResolveManyData { changed, records }, pretty, meta)
+            .map_err(|error| AppError::from_io(error, std::path::Path::new("stdout")))?;
+    }
     Ok(0)
 }
 

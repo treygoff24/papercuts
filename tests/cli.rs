@@ -3,6 +3,7 @@ use papercuts::commands::add::AddData;
 use papercuts::commands::doctor::DoctorData;
 use papercuts::commands::list::ListData;
 use papercuts::commands::resolve::ResolveData;
+use papercuts::commands::resolve::ResolveManyData;
 use papercuts::error::exit_code_map;
 use papercuts::output::{ErrorEnvelope, SuccessEnvelope};
 use papercuts::{ItemStatus, Severity, compute_id};
@@ -82,6 +83,115 @@ fn add(file: &Path, text: &str) -> SuccessEnvelope<AddData> {
 }
 
 #[test]
+fn add_evidence_flags_are_redacted_bounded_and_optional_fields_are_omitted() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let stderr_file = temp.path().join("stderr.txt");
+    std::fs::write(&stderr_file, format!("{}éafter-boundary", "x".repeat(4095))).unwrap();
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args([
+            "add",
+            "tool failed",
+            "--agent",
+            "tester",
+            "--cmd",
+            "curl -H 'Authorization: Bearer abc123'",
+            "--exit",
+            "7",
+            "--stderr-file",
+        ])
+        .arg(&stderr_file)
+        .args([
+            "--evidence",
+            "API_KEY=sk_live_secret token: abc password='hunter2' ghp_AbCdEf0123456789GhIjKlMnOpQrStUv monkey=keep tokenized=keep",
+        ])
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    let evidence = added.data.record.evidence.unwrap();
+    assert_eq!(evidence.exit, Some(7));
+    assert!(!evidence.cmd.as_deref().unwrap().contains("abc123"));
+    assert!(!evidence.note.as_deref().unwrap().contains("sk_live_secret"));
+    assert!(
+        !evidence
+            .note
+            .as_deref()
+            .unwrap()
+            .contains("ghp_AbCdEf0123456789GhIjKlMnOpQrStUv")
+    );
+    assert!(evidence.note.as_deref().unwrap().contains("monkey=keep"));
+    assert!(evidence.note.as_deref().unwrap().contains("tokenized=keep"));
+    assert_eq!(evidence.stderr.as_deref().unwrap().len(), 4095);
+    assert!(
+        !evidence
+            .stderr
+            .as_deref()
+            .unwrap()
+            .contains("after-boundary")
+    );
+
+    let absent = add(&temp.path().join("absent.jsonl"), "no evidence");
+    let absent_json = serde_json::to_value(&absent.data.record).unwrap();
+    assert!(absent_json.get("evidence").is_none());
+
+    let missing_stderr = run_file(
+        &temp.path().join("missing-stderr.jsonl"),
+        &["add", "missing stderr", "--stderr-file", "does-not-exist"],
+    );
+    error(&missing_stderr, 66, "not_found");
+}
+
+#[test]
+fn duplicate_add_warns_that_later_evidence_was_cut() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let first = command()
+        .arg("--file")
+        .arg(&file)
+        .args(["add", "same", "--agent", "tester", "--evidence", "first"])
+        .output()
+        .unwrap();
+    let first: SuccessEnvelope<AddData> = success(&first);
+    let second = command()
+        .arg("--file")
+        .arg(&file)
+        .args(["add", "same", "--agent", "tester", "--evidence", "later"])
+        .output()
+        .unwrap();
+    let second: SuccessEnvelope<AddData> = success(&second);
+    assert!(!second.data.changed);
+    assert_eq!(second.data.record.id, first.data.record.id);
+    assert_eq!(second.meta.warnings.len(), 1);
+    assert!(second.meta.warnings[0].starts_with("duplicate_cut:"));
+    assert!(second.meta.warnings[0].contains("later evidence was not stored"));
+    assert_eq!(
+        second.data.record.evidence.unwrap().note.as_deref(),
+        Some("first")
+    );
+    assert_eq!(std::fs::read_to_string(&file).unwrap().lines().count(), 1);
+}
+
+#[test]
+fn add_resolution_text_warns_without_blocking() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let added: SuccessEnvelope<AddData> = success(
+        &command()
+            .arg("--file")
+            .arg(&file)
+            .args(["add", "  RESOLVED: fixed", "--agent", "tester"])
+            .output()
+            .unwrap(),
+    );
+    assert!(added.data.changed);
+    assert!(added.meta.warnings.iter().any(|warning| {
+        warning.starts_with("resolution_text:") && warning.contains("papercuts resolve <id>")
+    }));
+}
+
+#[test]
 fn every_command_success_envelope_deserializes() {
     let temp = TempDir::new().unwrap();
     let file = temp.path().join("cuts.jsonl");
@@ -121,6 +231,16 @@ fn every_command_success_envelope_deserializes() {
     assert_eq!(schema.data["contract"], 1);
     assert_eq!(schema.data["exit_codes"]["74"], "I/O error");
     assert_eq!(schema.data["commands"]["doctor"]["read_only"], true);
+    assert!(
+        schema.data["commands"]["add"]["flags"]["--stderr-file"]
+            .as_str()
+            .unwrap()
+            .contains("4096")
+    );
+    assert_eq!(
+        schema.data["commands"]["resolve"]["output"]["two_or_more"],
+        "{changed,records:[...]}; IDs are canonicalized, sorted, and duplicate inputs collapse"
+    );
 
     let expected = serde_json::to_value(exit_code_map()).unwrap();
     assert_eq!(schema.data["exit_codes"], expected);
@@ -298,6 +418,79 @@ fn resolve_prefix_errors_and_idempotence_are_structured() {
             .len(),
         2
     );
+}
+
+#[test]
+fn multi_resolve_is_atomic_deterministic_and_idempotent() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let first = add(&file, "multi first").data.record.id;
+    let second = add(&file, "multi second").data.record.id;
+    let before = std::fs::read(&file).unwrap();
+
+    let invalid = run_file(&file, &["resolve", &first, "deadbeef", "--agent", "fixer"]);
+    error(&invalid, 66, "not_found");
+    assert_eq!(std::fs::read(&file).unwrap(), before);
+
+    let resolved: SuccessEnvelope<ResolveManyData> = success(&run_file(
+        &file,
+        &[
+            "resolve", &second, &first, "--agent", "fixer", "--note", "batch",
+        ],
+    ));
+    assert!(resolved.data.changed);
+    assert_eq!(resolved.data.records.len(), 2);
+    let mut expected = vec![first.clone(), second.clone()];
+    expected.sort();
+    assert_eq!(
+        resolved
+            .data
+            .records
+            .iter()
+            .map(|record| record.cut.id.clone())
+            .collect::<Vec<_>>(),
+        expected
+    );
+    assert_eq!(std::fs::read_to_string(&file).unwrap().lines().count(), 4);
+
+    let duplicate: SuccessEnvelope<ResolveManyData> = success(&run_file(
+        &file,
+        &["resolve", &first, &first, "--agent", "fixer"],
+    ));
+    assert!(!duplicate.data.changed);
+    assert_eq!(duplicate.data.records.len(), 1);
+    assert_eq!(duplicate.meta.warnings, ["already resolved"]);
+    assert_eq!(std::fs::read_to_string(&file).unwrap().lines().count(), 4);
+}
+
+#[test]
+fn concurrent_multi_resolves_share_one_critical_section() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let first = add(&file, "concurrent multi first").data.record.id;
+    let second = add(&file, "concurrent multi second").data.record.id;
+    let barrier = Arc::new(Barrier::new(4));
+    let handles: Vec<_> = (0..4)
+        .map(|_| {
+            let file = file.clone();
+            let first = first.clone();
+            let second = second.clone();
+            let barrier = Arc::clone(&barrier);
+            thread::spawn(move || {
+                barrier.wait();
+                let output = run_file(&file, &["resolve", &first, &second, "--agent", "race"]);
+                let envelope: SuccessEnvelope<ResolveManyData> = success(&output);
+                envelope.data.changed
+            })
+        })
+        .collect();
+    let changed = handles
+        .into_iter()
+        .map(|handle| handle.join().unwrap())
+        .filter(|changed| *changed)
+        .count();
+    assert_eq!(changed, 1);
+    assert_eq!(std::fs::read_to_string(&file).unwrap().lines().count(), 4);
 }
 
 #[test]

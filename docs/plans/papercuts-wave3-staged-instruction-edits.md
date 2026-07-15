@@ -1,5 +1,7 @@
 # Wave 1 staged instruction edits
 
+- Attach `--cmd/--exit/--stderr-file` when filing tool failures.
+
 - Agent shells use a POSIX `sh` shared environment layer. The agent-only shell layer puts the available GNU userland first; write portable shell snippets rather than zsh-specific syntax.
 - Interactive zsh remains on the shared POSIX environment layer and does not receive the GNU-first PATH.
 - Pre-flip BSD-idiom sweep dispositions:
