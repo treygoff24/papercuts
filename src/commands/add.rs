@@ -216,23 +216,16 @@ fn redact_evidence(input: &str) -> String {
         let Some((end, key, option)) = sensitive_key(input, start) else {
             continue;
         };
-        let mut value_start = skip_spaces(input, end);
-        let assignment = input
-            .get(value_start..)
-            .and_then(|rest| rest.chars().next())
-            .is_some_and(|character| character == '=' || character == ':');
-        if assignment {
-            value_start += input[value_start..]
-                .chars()
-                .next()
-                .expect("checked above")
-                .len_utf8();
-            value_start = skip_spaces(input, value_start);
+        let mut value_start = skip_layout(input, end);
+        let assignment = assignment_separator(input, value_start);
+        if let Some(separator_length) = assignment {
+            value_start += separator_length;
+            value_start = skip_layout(input, value_start);
         } else if !option && key != "bearer" {
             continue;
         }
-        value_start = skip_spaces(input, value_start);
-        let span = if key == "authorization" && assignment {
+        value_start = skip_layout(input, value_start);
+        let span = if key == "authorization" {
             authorization_value_span(input, value_start)
         } else {
             value_span(input, value_start)
@@ -346,11 +339,19 @@ fn sensitive_key(input: &str, start: usize) -> Option<(usize, &'static str, bool
     Some((end, key, option))
 }
 
-fn skip_spaces(input: &str, mut index: usize) -> usize {
+fn assignment_separator(input: &str, index: usize) -> Option<usize> {
+    input[index..]
+        .chars()
+        .next()
+        .filter(|character| matches!(character, '=' | ':' | '＝' | '：'))
+        .map(char::len_utf8)
+}
+
+fn skip_layout(input: &str, mut index: usize) -> usize {
     while input[index..]
         .chars()
         .next()
-        .is_some_and(char::is_whitespace)
+        .is_some_and(|character| character.is_whitespace() || character == '\u{200b}')
     {
         index += input[index..]
             .chars()
@@ -398,23 +399,22 @@ fn authorization_value_span(input: &str, start: usize) -> Option<(usize, usize)>
     }
     let scheme_end = input[start..]
         .char_indices()
-        .find(|(_, character)| character.is_whitespace())
+        .find(|(_, character)| character.is_whitespace() || *character == '\u{200b}')
         .map_or(input.len(), |(offset, _)| start + offset);
-    let scheme = &input[start..scheme_end];
-    if scheme.eq_ignore_ascii_case("basic") || scheme.eq_ignore_ascii_case("bearer") {
-        let credential_start = skip_spaces(input, scheme_end);
-        let credential_quote = input[credential_start..].chars().next()?;
-        let (_, credential_end) = value_span(input, credential_start)?;
-        let end = if matches!(credential_quote, '\'' | '"')
-            && input[credential_end..].starts_with(credential_quote)
-        {
-            credential_end + credential_quote.len_utf8()
-        } else {
-            credential_end
-        };
-        return Some((start, end));
+    let credential_start = skip_layout(input, scheme_end);
+    if credential_start == scheme_end {
+        return value_span(input, start);
     }
-    value_span(input, start)
+    let credential_quote = input[credential_start..].chars().next()?;
+    let (_, credential_end) = value_span(input, credential_start)?;
+    let end = if matches!(credential_quote, '\'' | '"')
+        && input[credential_end..].starts_with(credential_quote)
+    {
+        credential_end + credential_quote.len_utf8()
+    } else {
+        credential_end
+    };
+    Some((start, end))
 }
 
 fn high_entropy_spans(input: &str) -> Vec<(usize, usize)> {

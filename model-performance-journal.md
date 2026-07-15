@@ -639,3 +639,39 @@ Outcome and verification: Corrected assignment-vs-padding detection, enabled lea
 Performance observations: 10m2s. Thorough but relatively slow. It addressed both security and CLI-contract findings in one coherent batch without public error-code expansion.
 
 Routing assessment: Luna high remains effective for mixed parser and interface repair sets when exact cases are supplied. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 2 closure review, fifth pass
+
+Command and run: `delegate --group papercuts-wave2-closure5 codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree; run handle: `codex-33`.
+
+Task and expectation: Fifth independent closure review after padded Base64, leading-hyphen CLI, nested-shape, and warning repairs.
+
+Outcome and verification: Found one remaining major: separated `--authorization Basic credential` redacts only `Basic`, leaving a short credential. The minimum fix is to route authorization option forms through the authorization-specific span logic regardless of assignment syntax. No files changed.
+
+Performance observations: 6m58s. Precise one-finding report with a short credential reproducer that bypasses the entropy backstop.
+
+Routing assessment: Sol high continues to justify the iterative closure loop. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 2 closure review, fifth pass
+
+Command and run: `delegate --group papercuts-wave2-closure5 cursor safe --prompt-file /tmp/papercuts-wave2-closure.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree; run handle: `cursor-10`.
+
+Task and expectation: Fifth independent closure review with live redaction probes.
+
+Outcome and verification: Independently confirmed the same authorization-class failure for non-Basic/Bearer schemes such as Token. It also identified optional best-effort hardening for fullwidth separators and zero-width key spacing. No files changed.
+
+Performance observations: 3m39s. Strong convergence with Sol on the major while extending the case set beyond Basic/Bearer.
+
+Routing assessment: Grok remains valuable for independent reproducer diversity and low-cost Unicode probes. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 2 authorization closure repair
+
+Command and run: `delegate --group papercuts-wave2-fix5 codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave2-fix5.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place; run handle: `codex-34`.
+
+Task and expectation: Route every authorization form through scheme-plus-credential redaction and cheaply harden fullwidth separators and zero-width layout handling.
+
+Outcome and verification: Fixed separated option, assignment, header, arbitrary single-scheme, fullwidth separator, and U+200B layout cases with exact stdout/JSONL regressions. Terra reported fmt, strict clippy, release build, diff check, and five full test runs green with 45 CLI tests.
+
+Performance observations: 2m57s. Fast, appropriately minimal patch after a highly specific converged review finding.
+
+Routing assessment: Terra high is the preferred lane for tight final security corrections. Confidence: high.

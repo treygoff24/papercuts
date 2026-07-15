@@ -525,6 +525,59 @@ fn evidence_redacts_authorization_variants_without_boundary_false_positives() {
     );
 }
 
+#[test]
+fn evidence_redacts_short_authorization_credentials_across_forms() {
+    let temp = TempDir::new().unwrap();
+    let cases = [
+        (
+            "--authorization Basic short --safe kept",
+            "--authorization <redacted> --safe kept",
+        ),
+        (
+            "--authorization Bearer short --safe kept",
+            "--authorization <redacted> --safe kept",
+        ),
+        (
+            "authorization=Token short&safe=kept",
+            "authorization=<redacted>&safe=kept",
+        ),
+        (
+            "\"authorization\":\"Digest short\"&safe=kept",
+            "\"authorization\":\"<redacted>\"&safe=kept",
+        ),
+        (
+            "\u{200b}authorization\u{200b}＝\u{200b}Bearer short&safe=kept Authorization\u{200b}：\u{200b}Token short --safe kept",
+            "\u{200b}authorization\u{200b}＝\u{200b}<redacted>&safe=kept Authorization\u{200b}：\u{200b}<redacted> --safe kept",
+        ),
+    ];
+
+    for (index, (input, expected)) in cases.iter().enumerate() {
+        let file = temp.path().join(format!("authorization-{index}.jsonl"));
+        let output = command()
+            .arg("--file")
+            .arg(&file)
+            .args([
+                "add",
+                &format!("authorization form {index}"),
+                "--agent",
+                "tester",
+                "--evidence",
+                input,
+            ])
+            .output()
+            .unwrap();
+        let added: SuccessEnvelope<AddData> = success(&output);
+        assert_eq!(
+            added.data.record.evidence.unwrap().note.as_deref(),
+            Some(*expected)
+        );
+        let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(stdout["data"]["record"]["evidence"]["note"], *expected);
+        let stored: Value = serde_json::from_str(&std::fs::read_to_string(file).unwrap()).unwrap();
+        assert_eq!(stored["evidence"]["note"], *expected);
+    }
+}
+
 #[cfg(unix)]
 #[test]
 fn stderr_file_requires_a_regular_file_and_follows_regular_file_symlinks() {
