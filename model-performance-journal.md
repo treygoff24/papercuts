@@ -831,3 +831,75 @@ Outcome and verification: Added a 15-line shared shell-footguns rule, updated ca
 Performance observations: 12m1s. Thorough cross-repo execution with good restraint at the missing-source-log boundary. The reconciliation limitation requires coordinator review of log discovery before Wave 3 closure.
 
 Routing assessment: Terra high is effective for broad instruction-surface batches with exact ownership and verification constraints. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 3 adversarial review
+
+Command and run: `delegate --group papercuts-wave3-review codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave3-review.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree with live read-only targets; run handle: `codex-44`.
+
+Task and expectation: Review Wave 3 instruction completeness, canonical placement, local mappings, log reconciliation, acceptance evidence, and dirty-repo preservation.
+
+Outcome and verification: Found a blocker: reconciliation used the nonexistent `~/.papercuts.jsonl` rather than `~/.papercuts/log.jsonl` and omitted available repo/worktree logs; all 132 source events are recoverable. Also found the PACT glob still includes Packard transcripts, incomplete Codex-visible archive guidance, and missing preserved OPM evidence. No files changed.
+
+Performance observations: 11m. Deep, high-value cross-filesystem review with exact log coverage and live glob expansion evidence.
+
+Routing assessment: Sol high is the primary closure gate for cross-repo reconciliation and acceptance claims. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 3 adversarial review
+
+Command and run: `delegate --group papercuts-wave3-review cursor safe --prompt-file /tmp/papercuts-wave3-review.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree with live read-only targets; run handle: `cursor-15`.
+
+Task and expectation: Independently review the same Wave 3 live instruction and reconciliation surfaces.
+
+Outcome and verification: Independently confirmed the false missing-log claim and full 132/132 recoverability. It also identified three omitted instruction cuts: Python set union, awk label-vs-filename, and the Wave 1 remainder for safe loop construction; plus incomplete acceptance mapping. No files changed.
+
+Performance observations: 2m39s. Fast and complementary; especially strong at enumerating missing manifest-owned instruction requirements.
+
+Routing assessment: Use Grok alongside Sol for completeness enumeration and live log discovery. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 3 reconciliation and guidance fixes
+
+Command and run: `delegate --group papercuts-wave3-fix codex work --model terra --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave3-fix.md`; alias/variant/effort: `terra`, high; mode/isolation: work/in-place across live logs and guidance; run handle: `codex-45`.
+
+Task and expectation: Reconcile the correct complete log union, resolve eligible Wave 3 cuts in source logs, fix PACT transcript exclusions and omitted guidance, preserve OPM evidence, and pass the real after-Wave-3 gate.
+
+Outcome and verification: Corrected the home-log path, built a 13-log bounded inventory covering 132/132 frozen IDs, resolved 32 eligible Wave 3 cuts with OPM remaining open, fixed PACT default exclusions, added missing set/awk/loop/archive/sed guidance, and recorded the OPM Exa lookup. The actual checker reported `manifest PASS ... after-wave=3`; shell-footguns is 18 lines, PACT expansion had zero transcript hits, and all papercuts gates passed.
+
+Performance observations: 13m35s. Strong recovery from a serious reconciliation mistake; exact inventory and per-source append-only resolutions make the result auditable.
+
+Routing assessment: Terra high is effective for cross-log mutation once reviewers provide a verified source inventory. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 3 closure review
+
+Command and run: `delegate --group papercuts-wave3-closure codex safe --model sol --reasoning-effort high --prompt-file /tmp/papercuts-wave3-review.md`; alias/variant/effort: `sol`, high; mode/isolation: safe/temporary worktree with live read-only targets; run handle: `codex-46`.
+
+Task and expectation: Re-review Wave 3 after complete-log reconciliation and guidance fixes.
+
+Outcome and verification: CLEAN of blocker/major. Independently confirmed 132/132 coverage, 32/33 Wave 3 resolutions with only OPM open, healthy logs, zero PACT transcript hits, correct local mappings, and intact symlinks. Found only minor acceptance-record inaccuracies: per-log arithmetic, stale commit/journal wording, and incomplete post-snapshot note errata. No files changed.
+
+Performance observations: 12m23s. Thorough final reconciliation audit with useful arithmetic and provenance precision.
+
+Routing assessment: Wave 3 is substantively closed pending minor acceptance-document correction. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 3 closure review
+
+Command and run: `delegate --group papercuts-wave3-closure cursor safe --prompt-file /tmp/papercuts-wave3-review.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary worktree with live read-only targets; run handle: `cursor-16`.
+
+Task and expectation: Independently re-review the same Wave 3 live surfaces and gate.
+
+Outcome and verification: Confirmed the substantive gate and instruction surfaces, but elevated two acceptance-labeling defects: a nonexistent warroom inheritance claim and the immutable PACT resolution note's wrong shell-rule attribution. Also corroborated inventory arithmetic and stale closeout wording. No files changed.
+
+Performance observations: 4m1s. Strong audit-provenance complement; no product or gate failure found.
+
+Routing assessment: Use Grok for final evidence-label and artifact consistency checks. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 3 acceptance-record correction
+
+Command and run: `delegate --group papercuts-wave3-docfix codex work --model luna --reasoning-effort high --isolation none --prompt-file /tmp/papercuts-wave3-docfix.md`; alias/variant/effort: `luna`, high; mode/isolation: work/in-place, acceptance artifact only; run handle: `codex-47`.
+
+Task and expectation: Correct inventory arithmetic, evidence labels, immutable-note errata, and closeout Git wording without mutating logs or live guidance.
+
+Outcome and verification: Updated only the Wave 3 acceptance artifact. Direct recount proved 135 occurrences, 132 unique IDs, home 58, worktrees 3/2/2, and one ID in four sources. The real after-Wave-3 checker passed at 132/132; markdown/path sanity and diff check passed.
+
+Performance observations: 7m51s. Accurate but slower than expected for a one-file audit correction; it did preserve the strict no-log-mutation boundary.
+
+Routing assessment: Luna high is reliable for evidence-artifact cleanup when exact corrections are enumerated. Confidence: high.

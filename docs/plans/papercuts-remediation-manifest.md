@@ -31,9 +31,9 @@ conditions and requires the complete frozen universe: pass every source with rep
 pass an explicit aggregate log. For example:
 
 ```sh
-scripts/check-manifest.sh --after-wave 4a --log "$HOME/.papercuts.jsonl" --log .papercuts.jsonl
-scripts/check-manifest.sh --after-wave 5 --log "$HOME/.papercuts.jsonl" --log .papercuts.jsonl
-scripts/check-manifest.sh --after-wave 4b --log "$HOME/.papercuts.jsonl" --log .papercuts.jsonl
+scripts/check-manifest.sh --after-wave 4a --log "$HOME/.papercuts/log.jsonl" --log .papercuts.jsonl
+scripts/check-manifest.sh --after-wave 5 --log "$HOME/.papercuts/log.jsonl" --log .papercuts.jsonl
+scripts/check-manifest.sh --after-wave 4b --log "$HOME/.papercuts/log.jsonl" --log .papercuts.jsonl
 ```
 
 `4a` has no cut-status delta; its command proves only that the same resolved
@@ -331,12 +331,10 @@ from the frozen report; post-snapshot cuts never count as snapshot drift.
 
 ## Wave 3 execution reconciliation (2026-07-15)
 
-The shared and local instruction evidence is recorded in
-`docs/reviews/papercuts-wave3-acceptance-2026-07-15.md`. The available
-append-only log contains only `pc_6ffe1c95444b`, which is resolved after its
-local acceptance evidence. Do not synthesize missing cut events: the remaining
-Wave 3 IDs stay open until their source logs are recovered and can be resolved
-through `papercuts resolve`.
+The shared and local instruction evidence and the complete bounded source-log
+union are recorded in `docs/reviews/papercuts-wave3-acceptance-2026-07-15.md`.
+Resolve due IDs only in their source log with `papercuts --file <source> resolve`;
+do not synthesize or rewrite cut events.
 
 `pc_b8fe2e571b1f` remains open because the live OPM lookup did not prove a
 complete latest part set. `pc_b37f54ccfbe6` remains Wave 7-owned until the
