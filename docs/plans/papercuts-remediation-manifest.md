@@ -48,9 +48,10 @@ cut-state outcome; its separate lane probe remains a non-cut gate.
 Use `--accept-harness claude|codex`, `--defer-harness codex`, `--verify-id ID`,
 `--verify-opm-complete-part-set`, `--task-x-key`, and `--task-data-gov-key`
 only for the conditions actually completed. Repeating an attestation or naming
-an unknown condition is an error. After a condition-backed row has already
-been resolved, later gates may omit its old attestation without treating that
-monotonic state as a failure.
+an unknown condition is an error. Every condition-backed row must be attested
+on each gate invocation; without its attestation, the expected state is open.
+For ledger-lost resolvable rows, pass `--attest-lost-resolved ID` after their
+owning session completes the manifest-assigned work.
 
 The final exact formula is: **open = 21** only when every shell harness has
 been accepted, all 15 already-fixed verification IDs have passed, the OPM
@@ -342,5 +343,5 @@ complete latest part set. `pc_b37f54ccfbe6` remains Wave 7-owned until the
 
 ## Amendments (2026-07-16)
 
-- **Ledger-lost IDs (4):** `pc_944d374ac9c4` (resolved, Wave 3 attestation), `pc_8c2350511589` (open, external-upstream), `pc_df6af25a100a` and `pc_f8eb38d950f5` (open, Wave 6 — delegate-agent session owns). Their live JSONL events were destroyed with deleted delegate worktrees after the diagnostic snapshot; the filings survive verbatim in the diagnostic report. `scripts/check-manifest.sh` counts them at these attested statuses and discloses it on every run. None affects a resolvable bucket: all four stay open or were already resolved.
+- **Ledger-lost IDs (4):** `pc_944d374ac9c4` (resolved, Wave 3 attestation), `pc_8c2350511589` (open, external-upstream), and `pc_df6af25a100a` plus `pc_f8eb38d950f5` (`resolve-on-6`, delegate-agent session owns). Their live JSONL events were destroyed with deleted delegate worktrees after the diagnostic snapshot; the filings survive verbatim in the diagnostic report. `scripts/check-manifest.sh` carries each row's manifest end-state, counts the Wave 6 rows open unless `--attest-lost-resolved ID` is supplied, and discloses the injected status on every run.
 - **Wave 6 ownership:** implemented by the delegate-agent session (see plan Amendments); its cuts resolve there, not via this repo's batches.

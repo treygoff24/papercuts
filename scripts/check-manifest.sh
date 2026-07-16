@@ -9,6 +9,7 @@ DIAGNOSTIC_ONLY=0
 LOGS=
 ATTESTATIONS=
 HARNESS_OUTCOMES=
+LOST_RESOLVED=
 
 usage() {
     cat <<'EOF'
@@ -18,7 +19,8 @@ Usage: scripts/check-manifest.sh --after-wave WAVE --log PATH [--log PATH ...] [
 WAVE: 0, 1, 2, 3, 4a, 5, 4b, 6, 7, 8.
 Conditions: --accept-harness claude|codex|delegate,
             --defer-harness claude|codex|delegate, --verify-id ID,
-            --verify-opm-complete-part-set, --task-x-key, --task-data-gov-key.
+            --verify-opm-complete-part-set, --task-x-key, --task-data-gov-key,
+            --attest-lost-resolved ID.
 
 State gates require all 132 frozen IDs. --diagnostic-only accepts partial
 coverage and never prints PASS. Wave 4a has no cut-status delta; run its
@@ -39,6 +41,11 @@ add_attestation() {
 add_harness_outcome() {
     HARNESS_OUTCOMES="${HARNESS_OUTCOMES}${HARNESS_OUTCOMES:+
 }$1|$2"
+}
+
+add_lost_resolution() {
+    LOST_RESOLVED="${LOST_RESOLVED}${LOST_RESOLVED:+
+}$1"
 }
 
 wave_rank() {
@@ -97,6 +104,11 @@ while [ "$#" -gt 0 ]; do
             ;;
         --task-x-key) add_attestation 'task:x-key'; shift ;;
         --task-data-gov-key) add_attestation 'task:data-gov-key'; shift ;;
+        --attest-lost-resolved)
+            [ "$#" -ge 2 ] || { usage >&2; exit 64; }
+            add_lost_resolution "$2"
+            shift 2
+            ;;
         -h|--help) usage; exit 0 ;;
         *) printf 'unknown argument: %s\n' "$1" >&2; usage >&2; exit 64 ;;
     esac
@@ -137,10 +149,13 @@ trap 'trash "$TMPDIR_PATH" >/dev/null 2>&1 || true' EXIT HUP INT TERM
 printf '%s\n' "$LOGS" > "$TMPDIR_PATH/logs"
 printf '%s\n' "$ATTESTATIONS" | sed '/^$/d' | sort > "$TMPDIR_PATH/attestations"
 printf '%s\n' "$HARNESS_OUTCOMES" | sed '/^$/d' | sort > "$TMPDIR_PATH/harness-outcomes"
+printf '%s\n' "$LOST_RESOLVED" | sed '/^$/d' | sort > "$TMPDIR_PATH/lost-resolved"
 duplicates=$(uniq -d "$TMPDIR_PATH/attestations")
 [ -z "$duplicates" ] || { printf 'duplicate attestations:\n%s\n' "$duplicates" >&2; exit 64; }
 duplicates=$(cut -d'|' -f1 "$TMPDIR_PATH/harness-outcomes" | uniq -d)
 [ -z "$duplicates" ] || { printf 'duplicate or conflicting harness outcomes:\n%s\n' "$duplicates" >&2; exit 64; }
+duplicates=$(uniq -d "$TMPDIR_PATH/lost-resolved")
+[ -z "$duplicates" ] || { printf 'duplicate lost-resolution attestations:\n%s\n' "$duplicates" >&2; exit 64; }
 
 awk -F'|' '
 function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); gsub(/`/, "", s); return s }
@@ -363,21 +378,35 @@ cut -f1 "$TMPDIR_PATH/live.tsv" | sort > "$TMPDIR_PATH/live.ids"
 # Ledger-lost IDs (manifest "Amendments 2026-07-16"): these four lived in
 # .papercuts.jsonl files inside delegate worktrees that were deleted after the
 # diagnostic snapshot. Their filings survive verbatim in the diagnostic report;
-# they are counted here at their last attested status instead of from a live
-# ledger. Loudly disclosed on every run. Do not add IDs without a matching
-# manifest amendment entry.
-while IFS=' ' read -r lost_id lost_status; do
+# they are counted here at their declared fallback status instead of from a live
+# ledger. Each replacement carries its manifest end-state, and resolvable rows
+# remain open unless explicitly attested. Loudly disclosed on every run. Do not
+# add IDs without a matching manifest amendment entry.
+cat > "$TMPDIR_PATH/ledger-lost.tsv" <<'LOST'
+pc_944d374ac9c4|resolved|resolve-on-verification
+pc_8c2350511589|open|stays-open-external
+pc_df6af25a100a|open|resolve-on-6
+pc_f8eb38d950f5|open|resolve-on-6
+LOST
+awk -F'|' 'NR == FNR { end_state[$1]=$4; next } !($1 in end_state) || end_state[$1] != $3 { print "ledger-lost end-state mismatch for " $1; bad=1 } END { exit bad }' \
+    "$TMPDIR_PATH/manifest.tsv" "$TMPDIR_PATH/ledger-lost.tsv" || exit 1
+while IFS= read -r lost_id; do
+    lost_end_state=$(awk -F'|' -v id="$lost_id" '$1 == id { print $3 }' "$TMPDIR_PATH/ledger-lost.tsv")
+    [ -n "$lost_end_state" ] || { printf 'unknown ledger-lost ID: %s\n' "$lost_id" >&2; exit 64; }
+    case "$lost_end_state" in resolve-on-*) ;; *)
+        printf 'ledger-lost ID is not resolvable: %s\n' "$lost_id" >&2; exit 64 ;;
+    esac
+done < "$TMPDIR_PATH/lost-resolved"
+while IFS='|' read -r lost_id lost_status lost_end_state; do
     [ -n "$lost_id" ] || continue
+    if grep -Fx "$lost_id" "$TMPDIR_PATH/lost-resolved" >/dev/null; then
+        lost_status=resolved
+    fi
     if ! grep -q "^$lost_id	" "$TMPDIR_PATH/live.tsv"; then
         printf '%s\t%s\n' "$lost_id" "$lost_status" >> "$TMPDIR_PATH/live.tsv"
         printf 'ledger-lost ID counted at attested status (%s): %s\n' "$lost_status" "$lost_id"
     fi
-done <<'LOST'
-pc_944d374ac9c4 resolved
-pc_8c2350511589 open
-pc_df6af25a100a open
-pc_f8eb38d950f5 open
-LOST
+done < "$TMPDIR_PATH/ledger-lost.tsv"
 sort -t "$(printf '\t')" -k1,1 -o "$TMPDIR_PATH/live.tsv" "$TMPDIR_PATH/live.tsv"
 cut -f1 "$TMPDIR_PATH/live.tsv" | sort > "$TMPDIR_PATH/live.ids"
 
@@ -411,15 +440,15 @@ FILENAME == ARGV[2] { outcome[$1]=$2; next }
     else {
         due=(target >= rank($3))
         conditional=($5 != "-")
-        if (!due) expected="either"
-        else if (!conditional) expected="resolved"
-        else if ($5 ~ /^shell:/) {
+        if (conditional && $5 ~ /^shell:/) {
             harness=$5; sub(/^shell:/, "", harness)
             if (outcome[harness] == "accept") expected="resolved"
             else if (outcome[harness] == "defer") expected="open"
-            else expected="either"
+            else expected="open"
         } else if (($5) in attested) expected="resolved"
-        else expected="either"
+        else if (conditional) expected="open"
+        else if (!due) expected="either"
+        else expected="resolved"
     }
     if (expected == "resolved") { required_resolved++ }
     if (expected == "either") { optional_resolved++ }
