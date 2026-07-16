@@ -1131,3 +1131,15 @@ Outcome and verification: Created `docs/reviews/papercuts-wave4a-acceptance-2026
 Performance observations: 3m41s. Accurate bounded evidence synthesis with no scope spill.
 
 Routing assessment: Luna high is effective for final acceptance artifacts. Confidence: high.
+
+## 2026-07-16 - Wave 5 relaunch (coordinator: Claude Opus, fresh session)
+
+Ground work first: recovered 26 dangling wave 0-4a commits from reflog (branch had been deleted; pinned as `remediation-2026-07-15`, merged to main at 2d94146), fixed the persistent-shell BASH_ENV/snapshot gap (bash profiles now source agent.sh in agent context), reinstalled papercuts with the Wave 2 contract.
+
+**Sol high via codex, wave-5 implement (`codex-64`, ~20 min):** found Wave 5 already implemented on an earlier unmerged feature branch and transplanted only the audited slice onto the 0.3.0 baseline — exactly the right call. Caught an inherited contract break (all-error path degraded from exit 10 to exit 0) in its own review pass and restored legacy behavior. Gates green, honest deviation reporting. Confidence: high.
+
+**Grok 4.5 via delegate grok lane, wave-5 review (`grok-1`, ~3.5 min):** 0 blockers / 6 majors / 5 minors, all majors verified real on coordinator spot-check — including the methodologically sharp catch that the "compatibility fixtures" were circular (authored in the same commits they claim to freeze). Fastest useful review of the run. Grok lane confirmed as a full peer to the cursor lane for adversarial code review.
+
+**Sol high via codex, wave-5 fix (`codex-65`, ~24 min):** all 9 findings fixed with the honest fixture rebuild (main-built binary + loopback capture harness, provenance README). Ran its own two-lane review unprompted, found and fixed 2 real additional bugs, and correctly rejected 1 out-of-scope finding with the right reason. Treated an ergonomics regression surfaced by the gate as a real failure rather than weakening tests. Exemplary run.
+
+Wave 5 accepted: `docs/reviews/papercuts-wave5-acceptance-2026-07-16.md`. Merge/push of `remediation-wave5` gated on Trey.
