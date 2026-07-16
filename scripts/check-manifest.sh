@@ -360,6 +360,27 @@ END { for (id in status) print id "\t" status[id] }
 ' "$TMPDIR_PATH/live-sorted.tsv" | sort -t "$(printf '\t')" -k1,1 > "$TMPDIR_PATH/live.tsv"
 cut -f1 "$TMPDIR_PATH/live.tsv" | sort > "$TMPDIR_PATH/live.ids"
 
+# Ledger-lost IDs (manifest "Amendments 2026-07-16"): these four lived in
+# .papercuts.jsonl files inside delegate worktrees that were deleted after the
+# diagnostic snapshot. Their filings survive verbatim in the diagnostic report;
+# they are counted here at their last attested status instead of from a live
+# ledger. Loudly disclosed on every run. Do not add IDs without a matching
+# manifest amendment entry.
+while IFS=' ' read -r lost_id lost_status; do
+    [ -n "$lost_id" ] || continue
+    if ! grep -q "^$lost_id	" "$TMPDIR_PATH/live.tsv"; then
+        printf '%s\t%s\n' "$lost_id" "$lost_status" >> "$TMPDIR_PATH/live.tsv"
+        printf 'ledger-lost ID counted at attested status (%s): %s\n' "$lost_status" "$lost_id"
+    fi
+done <<'LOST'
+pc_944d374ac9c4 resolved
+pc_8c2350511589 open
+pc_df6af25a100a open
+pc_f8eb38d950f5 open
+LOST
+sort -t "$(printf '\t')" -k1,1 -o "$TMPDIR_PATH/live.tsv" "$TMPDIR_PATH/live.tsv"
+cut -f1 "$TMPDIR_PATH/live.tsv" | sort > "$TMPDIR_PATH/live.ids"
+
 post_snapshot=$(comm -13 "$TMPDIR_PATH/report.ids" "$TMPDIR_PATH/live.ids")
 [ -z "$post_snapshot" ] || printf 'post-snapshot live-log IDs ignored: %s\n' "$(printf '%s' "$post_snapshot" | tr '\n' ' ')"
 live_snapshot=$(comm -12 "$TMPDIR_PATH/report.ids" "$TMPDIR_PATH/live.ids")

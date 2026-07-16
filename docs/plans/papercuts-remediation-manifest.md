@@ -339,3 +339,8 @@ do not synthesize or rewrite cut events.
 `pc_b8fe2e571b1f` remains open because the live OPM lookup did not prove a
 complete latest part set. `pc_b37f54ccfbe6` remains Wave 7-owned until the
 `test:web:file` script exists; its current typecheck guidance is staged only.
+
+## Amendments (2026-07-16)
+
+- **Ledger-lost IDs (4):** `pc_944d374ac9c4` (resolved, Wave 3 attestation), `pc_8c2350511589` (open, external-upstream), `pc_df6af25a100a` and `pc_f8eb38d950f5` (open, Wave 6 — delegate-agent session owns). Their live JSONL events were destroyed with deleted delegate worktrees after the diagnostic snapshot; the filings survive verbatim in the diagnostic report. `scripts/check-manifest.sh` counts them at these attested statuses and discloses it on every run. None affects a resolvable bucket: all four stay open or were already resolved.
+- **Wave 6 ownership:** implemented by the delegate-agent session (see plan Amendments); its cuts resolve there, not via this repo's batches.
