@@ -1158,3 +1158,11 @@ Three parallel Sol-high work lanes on clean repos, all completed first-try with 
 - **x-watch** (`1c9bd2e`): opt-in `doctor --online`, 401 → credential_invalid + portal remediation; live path mocked pending Trey's key regeneration. 15 tests green.
 
 Coordinator inline: transcribe-url no-transcript exit-1 guard + event-page mirror hint, regression exercised via curl shim. Packard item re-scoped: it lives inside gavel's lane-prompt files, folded into the pending gavel lane.
+
+## 2026-07-16 - Wave 7 close + Wave 8 complete (coordinator: Claude Opus)
+
+**Radar lane (Sol high, `fix/wave7-radar-papercuts`, merged c4b76a0):** 9/9 cuts fixed under a hard fence around Trey's live sidecar files (fence verified intact post-run). Its own isolated Playwright smoke caught a real clone-safety bug in the helper it had just written (fresh-worktree npm ci lockfile rejection) — fixed and regression-pinned before handoff. 1305 web tests + check:local green through the pre-commit hook, twice. Coordinator unblocked the repo first: the overnight "Radar gate blocker" was stale web/node_modules (react-markdown declared, never installed).
+
+**Wave 8 (two Sol lanes):** the first run hit the manifest coverage gate at 128/132 — four cut IDs' ledgers died with deleted delegate worktrees — and correctly froze all resolution rather than synthesizing records. Coordinator adjudicated: ledger-lost amendment with attested statuses, disclosed on every gate run (20dc5f8). Resume lane then ran every blocked batch with per-wave gate PASS. 11 already-fixed verifications passed; 1 failed honestly (pc_52e555b5a7d0, cited regression doesn't exist) and stays open. 14 upstream issue drafts written, nothing posted.
+
+**End state: 132 diagnostic cuts -> 88 resolved, 44 open, each open cut in a named bucket:** 7 needs-repro, 14 external-upstream, 3 Codex-shell-deferred, 3 Trey-task-blocked (X keys, DATA.gov), 5 pending-by-Trey's-call (gavel 3, Packard 1, agent-memory 1), 10 delegate-session-owned, 1 OPM-verification, 1 failed-verification. Final assertion (--after-wave 8) runs once the delegate session resolves its cuts and Trey's two key tasks land.
