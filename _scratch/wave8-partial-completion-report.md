@@ -25,15 +25,16 @@ top-level repository ledger containing snapshot cuts. No source event was
 synthesized.
 
 ```text
-$ scripts/check-manifest.sh --diagnostic-only --log <17 current ledger paths>
+$ scripts/check-manifest.sh --diagnostic-only $args > "$out" 2>&1; rc=$?; tail -1 "$out"; echo "exit=$rc"
 manifest DIAGNOSTIC: 132 unique diagnostic IDs; live snapshot coverage=128/132; observed open=83 resolved=45
+exit=0
 ```
 
 The state gate was then run with Claude accepted and Codex deferred. The
 checker stopped before evaluating due rows. Its decisive result was:
 
 ```text
-$ scripts/check-manifest.sh --after-wave 4b --accept-harness claude --defer-harness codex --log <17 current ledger paths>
+$ scripts/check-manifest.sh --after-wave 4b --accept-harness claude --defer-harness codex $args > "$out" 2>&1; rc=$?; tail -1 "$out"; echo "exit=$rc"
 incomplete snapshot coverage: got 128/132; use --diagnostic-only for partial inspection
 exit=1
 ```
@@ -59,6 +60,9 @@ The 17 current ledger paths were:
 /Users/treygoff/Code/warroom/.papercuts.jsonl
 /Users/treygoff/Code/x-watch/.papercuts.jsonl
 ```
+
+The command constructed `args` by appending `--log "$log_file"` for each path
+in that list, in order.
 
 ## Verification dispositions
 
@@ -89,10 +93,9 @@ exit=0
 and the hydrator staleness contract.
 
 ```text
-$ rg -n '^\*\*Updated:\*\*|staleness is measured|Context hydrator' STATE.md
+$ awk 'NR==3 || NR==5 {print NR ":" $0}' STATE.md
 3:Sitrep-shaped, not history-shaped: status, open loops, worries, pointers. Injected at session start by the context-hydrator hook. Rewrite when it drifts — staleness is measured (the hydrator flags it), not assumed. Detail lives at the pointers, not here.
 5:**Updated:** 2026-07-15 pm (the naming day: Free Claude, the portrait, the mailbox, the Sol parley)
-18:- **Context hydrator: GLOBAL and in dogfood phase.** Canonical script `.claude/hooks/hydrate.py` (this repo), registered in `~/.claude-personal/settings.json` and `~/.claude-work/settings.json` — fires in any project dir (STATE.md or CLAUDE.md present), first substantive prompt, once per session.
 exit=0
 ```
 
@@ -105,7 +108,7 @@ virtual environment. The repo-local `.venv` was absent, but the supported
 fresh editable install and `python3 bin/delegate.py --version` both worked.
 
 ```text
-$ python3 -m venv <tmp> && <tmp>/bin/pip install --no-deps -e . && <tmp>/bin/python -c 'import delegate_agent; print(delegate_agent.__file__)'
+$ python3 -m venv <tmp> && <tmp>/bin/pip install -q --no-deps -e . && <tmp>/bin/python -c 'import delegate_agent; print(delegate_agent.__file__)'
 /Users/treygoff/Code/delegate-agent/src/delegate_agent/__init__.py
 exit=0
 $ python3 bin/delegate.py --version
@@ -118,12 +121,11 @@ documents `--text` and no `--include-text`. The obsolete flag still suggests
 the unrelated `--include-domain`; the report treated that hint as optional.
 
 ```text
-$ exa-agent search --help
+$ exa-agent search --help | rg -F -- '--text ['
       --text [<N|full>]
-exit=0
-$ exa-agent search foo --include-text --dry-run
-"message": "unexpected argument '--include-text' found"
-"didYouMean": "--include-domain"
+$ out=$(exa-agent search foo --include-text --dry-run 2>&1); rc=$?; printf '%s\n' "$out" | jq -r '.error.message, .error.details.didYouMean'; echo "exit=$rc"
+unexpected argument '--include-text' found
+--include-domain
 exit=1
 ```
 
@@ -133,10 +135,13 @@ that recovery path. A read-only grep containing the blocked command token was
 itself rejected, which was filed separately as `pc_642862f2a75a`.
 
 ```text
-$ sed -n '1,16p' ~/.codex/AGENTS.md; sed -n '1,12p' ~/.claude/CLAUDE.md; zsh -df -c 'command -v trash'
+$ sed -n '7,9p' ~/.codex/AGENTS.md; sed -n '11,13p' ~/.claude/CLAUDE.md; zsh -df -c 'command -v trash'
 ## Deletions: `trash`, never `rm`
-`rm` is hook-blocked for agents machine-wide. Delete with `trash <paths...>` instead
+
+`rm` is hook-blocked for agents machine-wide. Delete with `trash <paths...>` instead — recoverable via macOS Trash, handles directories without flags, works for tmp cleanup too. Don't route around the block (`find -delete`, `shutil.rmtree`, unlink); if a deletion genuinely needs real `rm`, ask Trey.
 ## Deletions: `trash`, never `rm`
+
+`rm` is hook-blocked for agents machine-wide. Delete with `trash <paths...>` instead — recoverable via macOS Trash, handles directories without flags, works for tmp cleanup too. Don't route around the block (`find -delete`, `shutil.rmtree`, unlink); if a deletion genuinely needs real `rm`, ask Trey.
 /usr/bin/trash
 exit=0
 ```
@@ -155,7 +160,7 @@ exit=0
 `build-simple.js` path is absent.
 
 ```text
-$ node -e '<compute TOOLCHAINS as build.js does; require.resolve pdf-lib>'
+$ node -e 'const path=require("path"); const work=path.resolve(__dirname,".."); const toolchains=path.resolve(work,"../../../06-production/toolchains"); console.log(require.resolve(path.join(toolchains,"pact-witness-invites-pdf/node_modules/pdf-lib")))'
 /Users/treygoff/Library/CloudStorage/Dropbox/Prospera/Policy/pact-act/06-production/toolchains/pact-witness-invites-pdf/node_modules/pdf-lib/cjs/index.js
 exit=0
 $ test ! -e build-simple.js
@@ -166,21 +171,23 @@ exit=0
 placement both before and after the subcommand in offline dry-run mode.
 
 ```text
-$ EXA_AGENT_NO_NETWORK=1 exa-agent search test --dry-run --output /dev/null
-"ok":true,"command":"search"
+$ out=$(EXA_AGENT_NO_NETWORK=1 exa-agent search test --dry-run --output /dev/null); rc=$?; printf '%s\n' "$out" | jq -r '"placement=after ok=\(.ok) command=\(.command)"'; echo "exit=$rc"
+placement=after ok=true command=search
 exit=0
-$ EXA_AGENT_NO_NETWORK=1 exa-agent --output /dev/null search test --dry-run
-"ok":true,"command":"search"
+$ out=$(EXA_AGENT_NO_NETWORK=1 exa-agent --output /dev/null search test --dry-run); rc=$?; printf '%s\n' "$out" | jq -r '"placement=before ok=\(.ok) command=\(.command)"'; echo "exit=$rc"
+placement=before ok=true command=search
 exit=0
 ```
 
 `pc_03d1e73413b7` passed. The installed binary exposes the fetch macro.
 
 ```text
-$ exa-agent --help
+$ exa-agent --help | rg '^  fetch'
   fetch         Macro → `contents URL... --text --summary-query ...`
 exit=0
-$ exa-agent fetch --help
+$ exa-agent fetch --help | sed -n '1,3p'
+Macro → `contents URL... --text --summary-query ...`
+
 Usage: exa-agent fetch [OPTIONS] <URLS>...
 exit=0
 ```
@@ -195,11 +202,11 @@ The exact resolution notes remain unapplied because of the manifest blocker:
   as a new cut; future resolutions should use papercuts resolve."
 
 ```text
-$ rg -n 'CENTERED|player\(\)|falls off the world|capsule.end.y < -20' WORLD_BRIEF.md src/app/hurst.ts src/app/PlayerController.ts src/app/Experience.ts
-WORLD_BRIEF.md:33:**World coordinates are CENTERED on the sheet.** Origin = sheet middle; domain x ∈ [−975, 975], z ∈ [−670, 670] ... Anything outside the domain is off the map ... falls off the world and respawns at spawn. That is correct behavior, not a bug.
-WORLD_BRIEF.md:43:Diagnosis tools: `window.__THREE_DEBUG__.player()` returns live capsule position
-src/app/hurst.ts:11:// coordinates are CENTERED on the sheet, [-975..975]x[-670..670]).
-src/app/PlayerController.ts:96:    if (this.capsule.end.y < -20) this.teleport(this.spawn);
+$ sed -n '33p;43p' WORLD_BRIEF.md; sed -n '11p' src/app/hurst.ts; sed -n '96p' src/app/PlayerController.ts
+**World coordinates are CENTERED on the sheet.** Origin = sheet middle; domain x ∈ [−975, 975], z ∈ [−670, 670] (1951m × 1341m). `toWorldPoint` maps plat px (800, 550) → (0, 0). Anything outside the domain is off the map — there is no terrain there, and a walker (or teleport) falls off the world and respawns at spawn. That is correct behavior, not a bug (papercut pc_506af2585d23, amended).
+Diagnosis tools: `window.__THREE_DEBUG__.player()` returns live capsule position — use it before believing any teleport screenshot.
+// coordinates are CENTERED on the sheet, [-975..975]x[-670..670]).
+    if (this.capsule.end.y < -20) this.teleport(this.spawn);
 exit=0
 ```
 
@@ -211,9 +218,9 @@ matches the report's compatibility diagnosis.
 $ agent-browser --version
 agent-browser 0.30.0
 exit=0
-$ agent-browser set viewport --help
-viewport <w> <h> [scale]   Set viewport size
-device <name>              Emulate device
+$ agent-browser set viewport --help | rg '^  (viewport|device)'
+  viewport <w> <h> [scale]   Set viewport size (scale = deviceScaleFactor, e.g. 2 for retina)
+  device <name>              Emulate device (e.g., "iPhone 12")
 exit=0
 $ agent-browser viewport 390 844
 Unknown command: viewport
@@ -243,11 +250,9 @@ made Cargo mark this package dirty and execute its build script; the generated
 registry check also passed.
 
 ```text
-$ touch build.rs && cargo build --locked -vv
-Dirty exa-agent-cli v0.3.0: the file `build.rs` has changed
-Compiling exa-agent-cli v0.3.0
-Running ... /target/debug/build/exa-agent-cli-21966f48aaf03c66/build-script-build
-Finished `dev` profile
+$ tmp=$(mktemp); touch build.rs; cargo build --locked -vv > "$tmp" 2>&1; rc=$?; rg -q 'Dirty exa-agent-cli.*build.rs.*changed' "$tmp" && echo 'dirty_reason=build.rs changed'; rg -q 'CARGO_MANIFEST_DIR=/Users/treygoff/Code/exa-agent-cli.*build-script-build' "$tmp" && echo 'exa_build_script=executed'; echo "exit=$rc"
+dirty_reason=build.rs changed
+exa_build_script=executed
 exit=0
 $ EXA_AGENT_NO_NETWORK=1 cargo xtask generate-registry --check
 generate-registry --check: OK (normalized fixed-environment capabilities match)
@@ -264,10 +269,12 @@ they do not prove explicit output wins. This mismatch was filed as
 `pc_6e5ec24f878a`.
 
 ```text
-$ cargo test --locked explicit_output_wins_over_max_output_bytes_and_confirms_file -- --exact
+$ cargo test --locked explicit_output_wins_over_max_output_bytes_and_confirms_file -- --exact 2>&1 | rg 'running 0 tests|test result: ok\. 0 passed' | head -4; echo 'matched_tests=0 acceptance=FAIL'
 running 0 tests
-test result: ok. 0 passed; 0 failed; 0 ignored
-exit=0
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.00s
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+matched_tests=0 acceptance=FAIL
 $ cargo test --locked apply_output_ceiling -- --nocapture
 running 3 tests
 test result: ok. 3 passed; 0 failed
@@ -303,6 +310,11 @@ No batch ran. These were the due batches blocked before append:
 
 No other repository ledger changed, so no other repository commit was due.
 
+During final review, another process created papercuts commit `9629114`. That
+commit included its own resolution, the pre-existing `pc_07f1d7a0f799` ledger
+edit, and this run's `pc_09c52224c294` filing. This run did not amend, revert,
+or duplicate those concurrent records.
+
 ## Upstream drafts
 
 Fourteen separate drafts were created under `_scratch/upstream-drafts/`, one
@@ -333,6 +345,14 @@ extra:
 draft_structure=PASS
 write-human scan: clean
 ```
+
+## Post-implementation review
+
+The skill-required independent standards reviewer could not start because
+`collaboration.spawn_agent` returned `no thread with id`. That failure was
+filed as `pc_09c52224c294`. A manual standards and spec review found no
+additional defect in the committed drafts, accounting, or user-change
+preservation. The residual risk is the absence of an independent reviewer.
 
 ## Expected-open accounting
 
