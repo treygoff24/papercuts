@@ -903,3 +903,231 @@ Outcome and verification: Updated only the Wave 3 acceptance artifact. Direct re
 Performance observations: 7m51s. Accurate but slower than expected for a one-file audit correction; it did preserve the strict no-log-mutation boundary.
 
 Routing assessment: Luna high is reliable for evidence-artifact cleanup when exact corrections are enumerated. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 4a skill doctor implementation
+
+Command and run: `delegate --cwd /Users/treygoff/.local/bin codex work --model terra --reasoning-effort high --no-fast <bounded Wave 4a prompt>`; alias/variant/effort: `terra`, high, Standard requested; mode/isolation: work/in-place standalone live script; run handle: `codex-1` (`del_20260715T223159Z_6d6c11`).
+
+Task and expectation: Add the constrained `requires` convention and a secure, deterministic `claude-skill doctor [--json]` to the live standalone script, with topology sweep, realpath dedupe, executable/version checks, content divergence checks, ID allowlisting, and isolated fixture verification.
+
+Outcome and verification: Implemented the doctor without touching skill content or config. Bash syntax, existing `list --names`, and a temporary-HOME matrix passed for clean/missing/divergent/allowlisted/version/symlink/malformed/`versionCmd` cases. The live scan reports 331 unique skills and 20 unacknowledged duplicate divergences, which is the expected Wave 4b input rather than a Wave 4a failure.
+
+Performance observations: 6m49s. Terra self-corrected from SKILL.md-only hashing to full non-sensitive skill-content hashing and removed a hidden non-skill false positive. It also encountered a pre-existing ShellCheck SC2012 and initially used unsupported papercuts flags before consulting the schema; neither affected the implementation.
+
+Routing assessment: Use Terra high again for bounded live-tool implementations with explicit security and fixture contracts; follow with Sol/Grok because the embedded parser and filesystem traversal are judgment-dense. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 4a skill doctor review
+
+Command and run: `delegate --group papercuts-wave4a-review --cwd /Users/treygoff/.local/bin cursor safe --prompt-file /tmp/papercuts-wave4a-grok-review.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary directory copy, direct-read-only brief; run handle: `cursor-1` (`del_20260715T224001Z_8efc8b`).
+
+Task and expectation: Independently inspect the Wave 4a doctor for parser, topology, determinism, allowlist, version, and regression defects without shell execution or live mutation.
+
+Outcome and verification: DO-NOT-SHIP with one major: multiline `requires:` parsing vacuumed later indented frontmatter text into the requires block, allowing unrelated description/metadata text to invent a version probe. It found no blockers and confirmed the rest of the contract statically. It also listed six minor hardening/ergonomics items.
+
+Performance observations: 2m3s. The direct-read lane was highly active and precise despite noisy tool-event telemetry. Its concrete YAML example exposed a real trust-boundary parser defect that the implementation fixtures missed.
+
+Routing assessment: Use Grok for static parser/confusion attacks alongside Sol; the finding is actionable and high confidence, but Sol/coordinator should still rank timeout/process-control severity. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 4a skill doctor review
+
+Command and run: `delegate --group papercuts-wave4a-review --cwd /Users/treygoff/.local/bin codex safe --model sol --reasoning-effort high --no-fast --prompt-file /tmp/papercuts-wave4a-sol-review.md`; alias/variant/effort: `sol`, high, Standard requested; mode/isolation: safe/temporary directory copy; run handle: `codex-2` (`del_20260715T224001Z_e230a4`).
+
+Task and expectation: Perform the security/contract closure review for Wave 4a with read-only empirical probes of the embedded parser, process boundary, output behavior, and existing dispatch.
+
+Outcome and verification: DO-NOT-SHIP with no blockers and five majors: permissive/confused frontmatter parsing, ambiguous first-number version parsing, unbounded buffered version output and incomplete timeout/process-tree control, secret-name fingerprint false negatives, and fail-open/crashing filesystem errors. It independently verified JSON purity, additive dispatch, shell-free fixed arguments, environment scrubbing, topology enumeration, and allowlist rejection behavior.
+
+Performance observations: 5m57s. Sol produced empirical parser outputs and a subprocess timeout reproduction; one initial extraction probe failed, then it corrected the extraction and continued. Severity calibration was appropriately stricter and broader than Grok's one-major result.
+
+Routing assessment: Sol high remains the severity anchor for trust-boundary CLI doctors. Use its findings as the complete Terra fix brief, then repeat both review lanes. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 4a security hardening
+
+Command and run: `delegate --cwd /Users/treygoff/.local/bin codex work --model terra --reasoning-effort high --no-fast <consolidated Sol/Grok fix prompt>`; alias/variant/effort: `terra`, high, Standard requested; mode/isolation: work/in-place standalone live script; run handle: `codex-3` (`del_20260715T224709Z_35facb`).
+
+Task and expectation: Fix every blocker/major from the first Wave 4a review pair: strict `requires` parsing, fail-closed version selection, bounded process-group probes, full content fingerprints, stable filesystem scan errors, trusted executable lookup, and duplicate-row suppression.
+
+Outcome and verification: Changed only `/Users/treygoff/.local/bin/claude-skill`. Replaced the parser with a strict documented subset; malformed and unsupported declarations now produce deduplicated `invalid-requirement` findings. Version probes now use a sanitized trusted PATH, direct execution, process-group termination, an 8 KiB streaming cap, and unique dotted-version extraction. Fingerprints include all regular files, empty directories, and symlink targets; discovery failures become stable findings. Bash syntax, the full isolated temporary-HOME regression matrix, read-only command smokes, and live human/JSON doctor checks passed. The live result is 331 skills with 20 existing divergences and 12 dangling-link scan errors reserved for Wave 4b, and no requirement/version failures.
+
+Performance observations: 10m6s. Terra covered the full consolidated brief and added malformed-frontmatter and duplicate-declaration probes. It wasted time recreating a self-deleting temporary test script and correctly logged that friction before completing a retained inline matrix.
+
+Routing assessment: Terra high is effective for security-hardening fix loops when reviewer findings are consolidated into concrete acceptance probes. Fresh Sol/Grok review remains required. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 4a hardening re-review
+
+Command and run: `delegate --group papercuts-wave4a-rereview --cwd /Users/treygoff/.local/bin cursor safe --prompt-file /tmp/papercuts-wave4a-grok-rereview.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary directory copy with read-only live target; run handle: `cursor-2` (`del_20260715T225758Z_1ba8cf`).
+
+Task and expectation: Attack the fixed doctor from scratch across frontmatter confusion, command execution, process control, executable lookup, version extraction, content fingerprints, scan errors, stable IDs/allowlists, JSON/exits, and regressions.
+
+Outcome and verification: DO-NOT-SHIP with no blockers and one major: a UTF-8 BOM before the opening `---` makes a real `requires` declaration silently absent, yielding a false-clean exit 0. Grok independently cleared all previously rejected surfaces with temporary-HOME probes and identified only minor near-miss grammar, flow-order, external-symlink, and pre-existing Bash 3.2 concerns.
+
+Performance observations: 4m11s. The safe-shell probe was initially blocked, but Grok recovered with narrower probes and produced a minimal, reproducible BOM failure rather than overgeneralizing.
+
+Routing assessment: Grok remains valuable for encoding and parser-confusion edges after a broad security fix. Route the single major to Terra/Luna, then repeat fresh reviews. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 4a hardening re-review
+
+Command and run: `delegate --group papercuts-wave4a-rereview --cwd /Users/treygoff/.local/bin codex safe --model sol --reasoning-effort high --no-fast --prompt-file /tmp/papercuts-wave4a-sol-rereview.md`; alias/variant/effort: `sol`, high, Standard requested; mode/isolation: safe/temporary directory copy with live read-only target; run handle: `codex-4` (`del_20260715T225757Z_0c2077`).
+
+Task and expectation: Re-audit the fixed doctor as the security and contract severity anchor, independently probing every prior rejection surface.
+
+Outcome and verification: DO-NOT-SHIP with no blockers and three majors: unframed tree-fingerprint records admit deterministic structural collisions; block `requires` can omit mandatory `executables` and accepts tabs/inconsistent indentation; successful short-lived version parents can leave descendants running because process-group cleanup only occurs while the parent is alive. One minor: malformed and stale allowlist entries warn but can still exit 0. Sol cleared fixed argv, shell-free execution, sanitized PATH/environment, unique dotted-version extraction, timeout/output caps, JSON purity, filesystem fail-closed behavior, realpath dedupe, stable IDs, and existing-command compatibility.
+
+Performance observations: 8m21s. Deep static reasoning found a real framing collision and paired it with focused process probes. The read-only sandbox prevented creating some filesystem fixtures, which Grok and Terra had covered separately.
+
+Routing assessment: Sol high remains the decisive security closure reviewer. Send all three majors plus the allowlist minor and Grok BOM case to Luna/Terra, then re-review. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 4a closure hardening
+
+Command and run: `delegate --cwd /Users/treygoff/.local/bin codex work --model luna --reasoning-effort high --no-fast --isolation none --prompt-file /tmp/papercuts-wave4a-luna-fix2.md`; alias/variant/effort: `luna`, high, Standard requested; mode/isolation: work/in-place standalone live script; run handle: `codex-5` (`del_20260715T230708Z_4ec10f`).
+
+Task and expectation: Fix the Grok BOM fail-open, Sol fingerprint framing collision, mandatory/strict indentation grammar, success-path descendant cleanup, and malformed/stale allowlist weakness without touching live skill topology.
+
+Outcome and verification: Changed only `/Users/treygoff/.local/bin/claude-skill`. Luna reports BOM/encoding fail-closed handling, strict grammar, length-framed fingerprints, all-path process-group cleanup, and structured allowlist findings. Bash syntax, embedded Python compilation, read-only command smokes, valid JSON, stable IDs, and the full temporary-HOME Wave 4a matrix passed. Live doctor remains exit 1 with the expected Wave 4b backlog: 331 skills, 20 divergences, and 12 pre-existing scan errors.
+
+Performance observations: 8m39s. Concise completion report but complete requested implementation/test scope; no spillover into Bash 3.2 or topology cleanup.
+
+Routing assessment: Luna high is effective for tightly enumerated parser/process/hash closure work. Repeat independent Sol/Grok reviews before acceptance. Confidence: medium-high pending reviewer evidence.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 4a final-review attempt
+
+Command and run: `delegate --group papercuts-wave4a-finalreview --cwd /Users/treygoff/.local/bin cursor safe --prompt-file /tmp/papercuts-wave4a-grok-finalreview.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary directory copy with read-only live target; run handle: `cursor-3` (`del_20260715T231622Z_badc0d`).
+
+Task and expectation: Fresh adversarial ship review after Luna's closure pass, covering every prior defect and new attack classes.
+
+Outcome and verification: DO-NOT-SHIP. Grok cleared BOM/non-UTF8, strict indentation, command/env injection, framed fingerprints, process cleanup, allowlist integrity, topology, JSON/exits, and existing commands, but reported one blocker and four majors: date-like dotted output can satisfy a low minVersion; a successful parent whose descendant holds stdout open becomes a false timeout; minimum/actual grammar asymmetry rejects undotted versions and `go1.22.5`; equivalent symlink spellings hash differently; and `requires :` is silently absent. It also flagged empty executable lists and ignored extra doctor arguments as minor.
+
+Performance observations: 3m58s. Strong empirical edge-case sweep. Some recommendations broaden the deliberately small grammar, so Sol should arbitrate contract necessity, but the date false-pass and malformed-key fail-open are concrete.
+
+Routing assessment: Use Grok for adversarial breadth and Sol for contract/severity arbitration before the next fix brief. Confidence: medium-high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 4a final-review attempt
+
+Command and run: `delegate --group papercuts-wave4a-finalreview --cwd /Users/treygoff/.local/bin codex safe --model sol --reasoning-effort high --no-fast --prompt-file /tmp/papercuts-wave4a-sol-finalreview.md`; alias/variant/effort: `sol`, high, Standard requested; mode/isolation: safe/temporary directory copy with read-only live target; run handle: `codex-6` (`del_20260715T231622Z_e19734`).
+
+Task and expectation: Final severity-anchor review after Luna's closure pass, with all prior defects independently retested.
+
+Outcome and verification: DO-NOT-SHIP with no blocker and three majors, corroborating Grok: malformed column-zero `requires` lookalikes return absent; a successful parent with a stdout-holding descendant becomes a false timeout; and date-like dotted output can falsely satisfy a minimum. Min/actual grammar asymmetry, empty executable lists, ignored extra doctor args, and oversized numeric components were minor. Sol cleared BOM/non-UTF8, real block indentation/tabs, framed fingerprints, command/env/path safety, ambiguity, timeout/output limits, descendant termination, scan errors, IDs/dedupe, allowlists, topology, JSON/exits, and legacy commands.
+
+Performance observations: 13m22s. Thorough and patient review with exact embedded-function and real process-group probes. It found the oversized-version denial edge after the main review, improving the fix brief.
+
+Routing assessment: Treat the three corroborated majors as required; also fix the four bounded minors for an excellent closure. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-terra via codex - Wave 4a final bounded fixes
+
+Command and run: `delegate --cwd /Users/treygoff/.local/bin codex work --model terra --reasoning-effort high --no-fast --isolation none --prompt-file /tmp/papercuts-wave4a-terra-fix3.md`; alias/variant/effort: `terra`, high, Standard requested; mode/isolation: work/in-place standalone live script; run handle: `codex-7` (`del_20260715T233040Z_90e087`).
+
+Task and expectation: Fix the three corroborated majors plus bounded grammar/argument/oversized-component minors while preserving all already-cleared security properties and leaving Wave 4b topology untouched.
+
+Outcome and verification: Updated only `/Users/treygoff/.local/bin/claude-skill`. Terra fixed malformed column-zero declarations, empty executable lists, strict doctor arguments, bounded dotted version grammar, date rejection, common `v`/`go` output forms, per-skill comparison failures, and successful-parent descendant cleanup. Bash syntax, embedded Python compilation, the full isolated Wave 4a harness, and a final targeted recheck passed. Live read-only doctor remains exit 1 with the expected 331 skills and 32 Wave 4b findings.
+
+Performance observations: 6m45s. Faster than the prior broad hardening passes and stayed within the exact final brief.
+
+Routing assessment: Terra high is the preferred workhorse for a reviewer-consolidated final fix. One fresh Sol/Grok pair is still required for ship acceptance. Confidence: high pending review.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 4a ship review
+
+Command and run: `delegate --group papercuts-wave4a-shipreview --cwd /Users/treygoff/.local/bin cursor safe --prompt-file /tmp/papercuts-wave4a-grok-shipreview.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary directory copy with read-only live target; run handle: `cursor-4` (`del_20260715T233803Z_09a2fe`).
+
+Task and expectation: Adversarial ship review after Terra's final bounded fixes, reproducing every previous issue and searching for new defects.
+
+Outcome and verification: SHIP with no blockers or majors. Grok independently cleared date filtering, prompt parent/stdout-holder completion and cleanup, declaration lookalikes, nonempty mandatory executables, BOM handling, framed hashes, allowlist integrity, strict args, command rejection, and parser isolation. Three residual minors: descendants that call `setsid` can escape process-group cleanup; a fingerprint scan error suppresses a separate divergence comparison for that duplicate name; and ambient `BASH_ENV` can affect the Bash wrapper before the scrubbed Python child environment.
+
+Performance observations: 5m39s. Strong comprehensive regression pass with a focused 0.22-second successful-parent proof. Correctly treated raw symlink text divergence as deliberate.
+
+Routing assessment: Wave 4a is blocker/major clean in Grok. Use Sol to confirm and decide whether the two locally fixable minors merit one final cleanup. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 4a ship review
+
+Command and run: `delegate --group papercuts-wave4a-shipreview --cwd /Users/treygoff/.local/bin codex safe --model sol --reasoning-effort high --no-fast --prompt-file /tmp/papercuts-wave4a-sol-shipreview.md`; alias/variant/effort: `sol`, high, Standard requested; mode/isolation: safe/temporary directory copy with read-only live target; run handle: `codex-8` (`del_20260715T233803Z_8bff64`).
+
+Task and expectation: Decisive Wave 4a ship review after Terra's final bounded fixes.
+
+Outcome and verification: DO-NOT-SHIP with no blocker, one major, and one minor. Two malformed declarations still return absent: a bare column-zero `requires` line, and a valid `requires:` declaration in unterminated frontmatter. The minor is prerelease/build suffix stripping, which can let `v1.2.3-beta` satisfy release minimum `1.2.3`. All other named surfaces cleared, including parser encoding/indentation, process outcomes and cleanup, version bounds/date filtering, execution isolation, framed fingerprints, topology, scan errors, allowlists, JSON/exits, and legacy commands.
+
+Performance observations: 10m16s. Sol found two precise grammar holes after an otherwise clean broad matrix, justifying the additional review loop.
+
+Routing assessment: Send the one parser major and prerelease minor to Luna/Terra; no other Wave 4a changes are warranted. Confidence: high.
+
+## 2026-07-15 - gpt-5.6-luna via codex - Wave 4a final grammar fix
+
+Command and run: `delegate --cwd /Users/treygoff/.local/bin codex work --model luna --reasoning-effort high --no-fast --isolation none --prompt-file /tmp/papercuts-wave4a-luna-fix4.md`; alias/variant/effort: `luna`, high, Standard requested; mode/isolation: work/in-place standalone live script; run handle: `codex-9` (`del_20260715T234855Z_840221`).
+
+Task and expectation: Surgically close the bare/unterminated `requires` fail-open cases and prerelease/build suffix false-pass without broadening scope.
+
+Outcome and verification: Changed only the live `claude-skill` script. Bare and unclosed requires declarations now fail closed, and prerelease/build suffixes no longer satisfy a release minimum. Bash syntax, embedded Python compilation, targeted temporary-HOME probes, the full Wave 4a harness, legacy smokes, and live JSON passed. Live topology remains 331 skills and 32 Wave 4b duplicate/scan findings, with no requirement/version findings.
+
+Performance observations: 7m1s. Slower than expected for three small edges, but it completed the full requested regression matrix and logged encountered friction.
+
+Routing assessment: Luna high is safe for final surgical parser fixes. Proceed to final Sol/Grok acceptance review. Confidence: high.
+
+## 2026-07-15 - grok-4.5-fast-xhigh via cursor - Wave 4a acceptance review
+
+Command and run: `delegate --group papercuts-wave4a-acceptance --cwd /Users/treygoff/.local/bin cursor safe --prompt-file /tmp/papercuts-wave4a-grok-shipreview.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary directory copy with read-only live target; run handle: `cursor-5` (`del_20260715T235616Z_24775f`).
+
+Task and expectation: Final adversarial acceptance review after the bare/unclosed declaration and prerelease fixes.
+
+Outcome and verification: DO-NOT-SHIP with no blockers, one major, and one minor. All 54 prior/regression surfaces passed, but a deliberately daemonizing trusted `--version` executable can fork, call `setsid`, detach stdio, and survive process-group cleanup. A per-path `OSError` such as ELOOP also short-circuits later safe-PATH candidates (minor). Same-group cleanup and every prior parser/version/hash/allowlist/topology/JSON/legacy issue cleared.
+
+Performance observations: 5m16s. Exhaustive 54-case matrix and a concrete orphan proof. Severity is stricter than the prior Grok pass, which had classified the same session-escape limitation as minor; Sol should arbitrate whether the fixed-executable trust model makes this a Wave 4a ship defect.
+
+Routing assessment: Await Sol severity arbitration before adding cross-platform process-tree machinery. Confidence: high on reproduction, medium on Wave 4a severity.
+
+## 2026-07-15 - gpt-5.6-sol via codex - Wave 4a acceptance review
+
+Command and run: `delegate --group papercuts-wave4a-acceptance --cwd /Users/treygoff/.local/bin codex safe --model sol --reasoning-effort high --no-fast --prompt-file /tmp/papercuts-wave4a-sol-shipreview.md`; alias/variant/effort: `sol`, high, Standard requested; mode/isolation: safe/temporary directory copy with read-only live target; run handle: `codex-10` (`del_20260715T235616Z_3eca60`).
+
+Task and expectation: Final severity-anchor acceptance review after the last grammar fix.
+
+Outcome and verification: DO-NOT-SHIP with no blockers, one major, and two minors. The doctor trusted PATH omits the plan's five canonical GNU gnubin directories, so live agent `sed`/`awk`/`find` resolution differs from doctor resolution and valid version declarations can fail. Minors: ambient `BASH_ENV` can prefix/corrupt JSON before the script scrubs the Python child; and one failed fingerprint suppresses divergence evidence among other readable copies. Every prior parser, version, process, execution, hash, topology, allowlist, JSON/exit, and legacy-command issue cleared. Sol's sandbox blocked post-cleanup process-table inspection, so it did not adjudicate Grok's session-escape case.
+
+Performance observations: 12m57s. Excellent integration review: it connected Wave 4a executable validation to the earlier plan-mandated GNU PATH rather than reviewing the doctor in isolation.
+
+Routing assessment: Fix the canonical GNU PATH and both bounded minors. Ask final reviewers to explicitly classify the trusted-executable session-escape residual. Confidence: high.
+
+## 2026-07-16 - gpt-5.6-terra via codex - Wave 4a integration closure
+
+Command and run: `delegate --cwd /Users/treygoff/.local/bin codex work --model terra --reasoning-effort high --no-fast --isolation none --prompt-file /tmp/papercuts-wave4a-terra-integration-fix.md`; alias/variant/effort: `terra`, high, Standard requested; mode/isolation: work/in-place standalone live script; run handle: `codex-11` (`del_20260716T001023Z_ed97f1`).
+
+Task and expectation: Align trusted executable resolution with the canonical GNU agent PATH, harden wrapper JSON purity, preserve divergence evidence across partial fingerprint failures, and continue after per-candidate path errors.
+
+Outcome and verification: Changed only the live `claude-skill` script. Added the five fixed GNU gnubin directories ahead of existing trusted paths; switched to Homebrew Bash privileged mode to ignore ambient `BASH_ENV`; made ELOOP/per-candidate errors continue; and compares remaining readable duplicate hashes while preserving scan errors. Syntax, full Wave 4a harness, canonical GNU parity, BASH_ENV JSON purity, ELOOP fallback, legacy smokes, and two stable live doctor runs passed. Live result remains 331 skills and 32 Wave 4b findings.
+
+Performance observations: 6m45s. Efficient integration fix with direct live parity proof.
+
+Routing assessment: Terra high closed the final concrete integration findings. Final reviewers must explicitly adjudicate the deliberately daemonizing trusted-executable residual; do not add race-prone PID sweeping without a stronger isolation primitive. Confidence: high.
+
+## 2026-07-16 - gpt-5.6-sol via codex - Wave 4a final acceptance
+
+Command and run: `delegate --group papercuts-wave4a-final-acceptance --cwd /Users/treygoff/.local/bin codex safe --model sol --reasoning-effort high --no-fast --prompt-file /tmp/papercuts-wave4a-sol-acceptance2.md`; alias/variant/effort: `sol`, high, Standard requested; mode/isolation: safe/temporary directory copy with read-only live target; run handle: `codex-12` (`del_20260716T001752Z_d83da9`).
+
+Task and expectation: Final acceptance review of the GNU-path, BASH_ENV, ELOOP, and partial-fingerprint fixes, plus explicit session-escape severity adjudication.
+
+Outcome and verification: SHIP with no blockers or majors. Sol confirmed the five GNU directories, canonical ordering, privileged-Bash BASH_ENV protection, per-candidate error fallback, preserved scan/divergence evidence, and all prior Wave 4a surfaces. It classified a deliberately daemonizing already-installed trusted executable as a minor residual outside the Wave 4a untrusted-exec boundary; robust containment would require a disposable VM/container PID namespace rather than PID polling.
+
+Performance observations: 5m18s. Efficient final static/control-flow verification. A fresh heredoc probe was sandbox-blocked, so Sol correctly relied on retained integration evidence instead of bypassing safe mode.
+
+Routing assessment: Sol gives final Wave 4a acceptance. Confidence: high.
+
+## 2026-07-16 - grok-4.5-fast-xhigh via cursor - Wave 4a final acceptance
+
+Command and run: `delegate --group papercuts-wave4a-final-acceptance --cwd /Users/treygoff/.local/bin cursor safe --prompt-file /tmp/papercuts-wave4a-grok-acceptance2.md`; alias/variant/effort: `grok-4.5-fast-xhigh`; mode/isolation: safe/temporary directory copy with read-only live target; run handle: `cursor-6` (`del_20260716T001752Z_ab05b3`).
+
+Task and expectation: Independent final adversarial acceptance and explicit classification of the session-escape residual.
+
+Outcome and verification: SHIP with no blockers or majors. Grok independently passed GNU PATH parity, BASH_ENV purity, ELOOP fallback, partial-fingerprint behavior, and 37/37 regression probes. It reproduced the `setsid` orphan but classified it minor under the fixed trusted-executable boundary; incomplete PID polling is inappropriate, with Seatbelt deny-fork suggested only if containment is later elevated. The only other minor is the intentionally host-specific `/opt/homebrew` Bash shebang.
+
+Performance observations: 2m54s. Fast, empirical, and reconciled its earlier severity after the threat boundary was made explicit.
+
+Routing assessment: Grok independently concurs with Wave 4a acceptance. Confidence: high.
+
+## 2026-07-16 - gpt-5.6-luna via codex - Wave 4a acceptance record
+
+Command and run: `delegate --cwd /Users/treygoff/Code/papercuts codex work --model luna --reasoning-effort high --no-fast --isolation none --prompt-file /tmp/papercuts-wave4a-acceptance-doc.md`; alias/variant/effort: `luna`, high, Standard requested; mode/isolation: work/in-place papercuts repo; run handle: `codex-48` (`del_20260716T002409Z_f4008e`).
+
+Task and expectation: Create the durable repo acceptance record for the externally installed standalone Wave 4a script, with hashes, contract, tests, final review verdicts, live Wave 4b backlog, residual boundary, and sequence.
+
+Outcome and verification: Created `docs/reviews/papercuts-wave4a-acceptance-2026-07-16.md` only. Verified the final hash, paths, live inventory, and standalone non-Git status; write-human scan passed. Existing journal and papercuts-log changes were preserved.
+
+Performance observations: 3m41s. Accurate bounded evidence synthesis with no scope spill.
+
+Routing assessment: Luna high is effective for final acceptance artifacts. Confidence: high.
