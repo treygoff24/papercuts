@@ -1,0 +1,31 @@
+# Wave 1/3 staged instruction edits
+
+- Attach `--cmd/--exit/--stderr-file` when filing tool failures.
+
+- Agent shells use a POSIX `sh` shared environment layer. The agent-only shell layer puts the available GNU userland first; write portable shell snippets rather than zsh-specific syntax.
+- Interactive zsh remains on the shared POSIX environment layer and does not receive the GNU-first PATH.
+- Pre-flip BSD-idiom sweep dispositions:
+  - `~/.agents/skill-library/cmux-diagnostics/scripts/cmux-diagnostics:58` — fixed: use `/usr/bin/stat` for BSD formatting before its GNU fallback.
+  - `~/.agents/skill-library/web-artifacts-builder/scripts/init-artifact.sh:27-32` — fixed: `sed_inplace()` passes GNU `sed -i "$@"` or BSD `/usr/bin/sed -i '' "$@"` as separate arguments; the prior scalar command claim was incorrect. Both branches were exercised on scratch files.
+  - `~/.agents/skill-library/embedded-captions/scripts/render-and-composite.sh:268` — fixed: the live `stat -f%z` hit now calls `/usr/bin/stat -f%z` for explicit macOS BSD semantics; scratch-file smoke passed.
+  - `~/.local/bin/cmux-dev:6` — fixed: use `/usr/bin/stat` for BSD ownership lookup before its GNU fallback.
+  - `~/.local/bin/claude-skill:99` — fixed: use `/usr/bin/stat` for the macOS symlink fallback.
+  - `~/.agents/skill-library/internal-report-writing/SKILL.md:84` and `~/.agents/skill-library/agent-ergonomics-and-intuitiveness-maximization-for-cli-tools/references/methodology/CONTINUOUS-IMPROVEMENT.md:48-49` — documentation examples only; no executable change.
+  - `~/.agents/skill-library/.pool-backups/**` and `~/.local/bin/claude-skill.bak-20260702T180438:96` — preserved backup copies; no change.
+  - `~/.claude-shared/hooks` — no BSD-idiom hits.
+- Context7: `~/.ai-profiles/context7.env.zsh` is the currently sourced file. It contains only a POSIX-compatible `export` assignment; `sh -n` and a names-only source smoke passed, so no `.sh` twin was created.
+- Shell control-flow inventory: the retained original zshenv controls were cargo env, Supabase, Context7, agent-env secrets, OpenRouter, and ElevenLabs; `env.sh` retains those controls and adds the planned kimi/local/cargo PATH guarantees. The original zsh-only function sources were not imported into the POSIX layer.
+- `~/.config/agent-env/load-secrets.sh` uses function positional parameters only, matches the original `agent-env:<NAME>` keychain service, leaves no `name`/`current`/`value` scratch globals, and unsets its helper after calls. When `GEMINI_API_KEY` is present, it fills each empty Google alias independently and preserves a pre-set alias. Name-only checks cover empty and pre-set alias cases.
+- `env.sh` preserves every component of a nonempty interactive PATH exactly, including literal `.` and empty components, except for idempotently adding the planned kimi/local/cargo entries; it initializes the deliberate Homebrew/local/system macOS base only when PATH is unset or empty. `agent.sh` alone normalizes PATH by removing empty components, literal `.`, and every occurrence of the five gnubin directories before prepending each available coreutils, gnu-sed, gawk, findutils, grep directory once in that order. Re-sourcing is idempotent and leaves no cwd-search entry. Name-only tests cover unset, empty, and nonempty PATHs; all gnubin paths late; exact prefix order; no empty components under `agent.sh`; GNU `sed`/`awk` under `agent.sh`; and BSD-first `sed`/`awk` with `env.sh` alone on a normal macOS PATH. No global instruction files were changed.
+- Final empirical Wave 1 acceptance matrix:
+  - Claude work-profile Delegate launcher: accepted. Run `claude-3` resolved Homebrew Bash 5.3, GNU `sed`/`awk`, and `papercuts`, `delegate`, and `exa-agent`.
+  - Codex/Luna: deferred. Run `codex-17` used zsh and BSD tools; no supported shell knob exists. Cut: `pc_86b7ef765ac2`.
+  - Cursor/Grok: deferred. Run `cursor-5` used zsh and BSD tools.
+  - Direct default Claude sessions must use the new `claude-agent` wrapper until native `BASH_ENV` behavior is proven. The managed `claude` symlink remains untouched.
+- Wave 1.6 hook registration: `~/.claude/settings.json`, `~/.claude-work/settings.json`, and `~/.claude-personal/settings.json` each now have exactly one `PreToolUse` `Agent` registration for `node /Users/treygoff/.claude-shared/hooks/guard-subagent-model.mjs`. The direct registered-command default/deny contract passes. A true native Agent end-to-end invocation was intentionally not run under the Delegate-only constraint; this remains an explicit verification boundary, not a native-execution claim.
+
+## Wave 3 applied (2026-07-15)
+
+- Applied once through the canonical Claude source (`~/.claude-shared/CLAUDE.md`, used by both Claude symlinks) and `~/.codex/AGENTS.md`: shell environment/defer boundary, filing evidence, doctor `--online`, and planned Delegate isolation wording.
+- Added the one shared shell recipe at `~/.claude-shared/rules/shell-footguns.md`; Codex references it rather than copying it.
+- Applied local notes in the memoryd decision packet, PACT guidance, Gavel guidance, Radar staged guidance, and papercuts AGENTS. The OPM recipe remains open pending a live complete-part-set proof; Radar `test:web:file` remains Wave 7-owned.

@@ -17,6 +17,8 @@ cargo fmt --check
 
 All four must pass before any commit. Run the test suite 5x when touching store.rs or anything concurrency-adjacent — a single green run proves nothing about races.
 
+For focused Rust tests, `cargo test` accepts one positional filter: use one shared substring or separate invocations. Report-generation transforms must pass verbatim replacement text to `re.sub`/`re.subn` through a callable such as `lambda _: replacement`; use `seen.update(tokens)` or `seen |= tokens` for a Python set union, never `set.add(other_set)`.
+
 ## Layout
 
 - `src/store.rs` — file discovery, locking (bounded try_lock → exit 75), append (write_all + tear-heal + rollback), the normative fold. The riskiest file; change with care and tests.

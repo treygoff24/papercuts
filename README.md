@@ -26,6 +26,8 @@ papercuts add "text"            # file a papercut (also: papercuts log, or pipe 
 papercuts list                  # open papercuts, severity-first then newest, JSON envelope
 papercuts list --format md      # human review digest
 papercuts resolve pc_9f2c        # mark one fixed (unique ID prefix ok)
+papercuts resolve pc_9f2c pc_a81e # resolve several atomically
+papercuts add "tool failed" --cmd 'tool --flag' --exit 1 --stderr-file /tmp/stderr
 papercuts schema                # full machine contract — agents self-orient with this
 papercuts doctor                # validate the log file
 ```
@@ -34,6 +36,7 @@ papercuts doctor                # validate the log file
 - **Concurrency-safe**: multiple agents on one file are fine (advisory locking, atomic appends, self-healing torn lines).
 - **Deterministic**: content-addressed IDs, stable sort, reproducible-clock override for tests.
 - **Never rewrites history**: `resolve` appends an event; the log is a journal, not a database.
+- **Evidence is bounded and redacted**: `add` can attach `--cmd`, `--exit`, `--stderr-file`, or `--evidence`; `--stderr-file` rejects inputs over 1 MiB before sanitized stderr is stored up to 4096 UTF-8 bytes. Redaction is best-effort, so never feed raw environment dumps.
 
 ## Give your agents the pen
 
@@ -49,7 +52,8 @@ misleading doc, a footgun config, a missing helper — file it before moving on:
 
 Don't stop working; file it and push through. Severity: minor (default) for
 annoyances, major for time sinks, blocker for hard walls. Run `papercuts schema`
-once if you need the full contract.
+once if you need the full contract. Attach `--cmd`, `--exit`, or `--stderr-file`
+when filing tool failures; never feed raw environment dumps.
 ```
 
 Then periodically: `papercuts list --format md` and fix what your agents keep tripping over.

@@ -47,6 +47,20 @@ pub struct CutRecord {
     pub severity: Severity,
     pub cwd: String,
     pub repo: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<Evidence>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Evidence {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cmd: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stderr: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
