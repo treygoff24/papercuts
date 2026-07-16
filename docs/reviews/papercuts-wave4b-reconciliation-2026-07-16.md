@@ -146,3 +146,6 @@ Every original below was copied before mutation to
   0.2.0.
 - `pc_c8f20c914ca7` — required `_scratch` artifact needed an undocumented
   force-add because the directory is gitignored.
+- `pc_05eec6b832a4` — a `fork_turns=all` review-lane spawn failed because the
+  collaboration thread was not found; retrying with a self-contained prompt
+  worked.
