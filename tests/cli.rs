@@ -1680,7 +1680,7 @@ fn structured_error_exit_matrix_and_help_exceptions() {
     assert!(version.status.success());
     assert_eq!(
         String::from_utf8_lossy(&version.stdout),
-        "papercuts 0.1.0\n"
+        format!("papercuts {}\n", env!("CARGO_PKG_VERSION"))
     );
 }
 
