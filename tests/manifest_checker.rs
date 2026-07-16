@@ -22,6 +22,12 @@ struct ManifestRow {
 fn manifest_lost_wave_6_resolutions_require_explicit_attestation() {
     let temp = TempDir::new().unwrap();
     let log = write_state_log(&temp, "6", None);
+    let unattested = run_gate(&log, "6", &[]);
+    let stderr = String::from_utf8_lossy(&unattested.stderr);
+    assert!(!unattested.status.success());
+    assert!(stderr.contains("state mismatch for pc_df6af25a100a: expected=resolved, actual=open"));
+    assert!(stderr.contains("state mismatch for pc_f8eb38d950f5: expected=resolved, actual=open"));
+
     let output = run_gate(
         &log,
         "6",
