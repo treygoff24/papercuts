@@ -461,6 +461,36 @@ fn evidence_redacts_common_compound_names_in_stdout_and_jsonl() {
 }
 
 #[test]
+fn evidence_redacts_lowercase_compound_credential_keys_in_stdout_and_jsonl() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let input = "clientsecret=short-value accesskey=short-value authtoken=short-value dbpassword=also-short monkey=keep keynotes=keep tokenized=keep";
+    let expected = "clientsecret=<redacted> accesskey=<redacted> authtoken=<redacted> dbpassword=<redacted> monkey=keep keynotes=keep tokenized=keep";
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args([
+            "add",
+            "lowercase compound names",
+            "--agent",
+            "tester",
+            "--evidence",
+        ])
+        .arg(input)
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    assert_eq!(
+        added.data.record.evidence.as_ref().unwrap().note.as_deref(),
+        Some(expected)
+    );
+    let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
+    let stored: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(stored["evidence"]["note"], expected);
+}
+
+#[test]
 fn evidence_redacts_common_camel_case_credential_keys_in_stdout_and_jsonl() {
     let temp = TempDir::new().unwrap();
     let file = temp.path().join("cuts.jsonl");
@@ -619,6 +649,31 @@ fn evidence_redacts_escaped_quoted_values_and_url_userinfo_in_stdout_and_jsonl()
     let added: SuccessEnvelope<AddData> = success(&output);
     assert_eq!(
         added.data.record.evidence.unwrap().note.as_deref(),
+        Some(expected)
+    );
+    let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(stdout["data"]["record"]["evidence"]["note"], expected);
+    let stored: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(stored["evidence"]["note"], expected);
+}
+
+#[test]
+fn evidence_redacts_token_only_url_userinfo_in_stdout_and_jsonl() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    let input =
+        "git clone https://ghp_AbCdEf0123456789GhIjKlMnOpQrStUv@github.com/acme/private.git";
+    let expected = "git clone https://<redacted>@github.com/acme/private.git";
+    let output = command()
+        .arg("--file")
+        .arg(&file)
+        .args(["add", "token URL", "--agent", "tester", "--evidence"])
+        .arg(input)
+        .output()
+        .unwrap();
+    let added: SuccessEnvelope<AddData> = success(&output);
+    assert_eq!(
+        added.data.record.evidence.as_ref().unwrap().note.as_deref(),
         Some(expected)
     );
     let stdout: Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -1080,7 +1135,13 @@ fn duplicate_add_warns_that_later_evidence_was_cut() {
         Some("first")
     );
     assert_eq!(std::fs::read_to_string(&file).unwrap().lines().count(), 1);
+}
 
+#[test]
+fn duplicate_add_without_evidence_preserves_pre_range_warning() {
+    let temp = TempDir::new().unwrap();
+    let file = temp.path().join("cuts.jsonl");
+    add(&file, "same");
     let no_evidence: SuccessEnvelope<AddData> = success(
         &command()
             .arg("--file")
@@ -1091,7 +1152,7 @@ fn duplicate_add_warns_that_later_evidence_was_cut() {
     );
     assert_eq!(
         no_evidence.meta.warnings,
-        ["duplicate_cut: existing record returned"]
+        ["duplicate papercut; existing record returned"]
     );
 }
 

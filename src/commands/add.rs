@@ -111,7 +111,7 @@ pub fn run(args: AddArgs, file: Option<PathBuf>, pretty: bool, now: Timestamp) -
             if supplied_evidence {
                 "duplicate_cut: existing record returned; later evidence was not stored"
             } else {
-                "duplicate_cut: existing record returned"
+                "duplicate papercut; existing record returned"
             }
             .into(),
         );
@@ -281,9 +281,7 @@ fn url_userinfo_spans(input: &str) -> Vec<(usize, usize)> {
             .char_indices()
             .find(|(_, character)| "/?#\"' \t\r\n".contains(*character))
             .map_or(input.len(), |(offset, _)| authority_start + offset);
-        if let Some(at) = input[authority_start..authority_end].rfind('@')
-            && input[authority_start..authority_start + at].contains(':')
-        {
+        if let Some(at) = input[authority_start..authority_end].rfind('@') {
             spans.push((authority_start, authority_start + at));
         }
         search_start = authority_end.max(authority_start);
@@ -330,6 +328,19 @@ fn sensitive_key(input: &str, start: usize) -> Option<(usize, &'static str, bool
         "bearer" => "bearer",
         "apikey" => "key",
         "password" | "passwd" | "secret" | "token" | "key" => "key",
+        _ if [
+            "access", "api", "auth", "client", "consumer", "db", "private", "refresh", "session",
+            "ssh",
+        ]
+        .iter()
+        .any(|prefix| {
+            normalized
+                .strip_prefix(prefix)
+                .is_some_and(is_sensitive_segment)
+        }) =>
+        {
+            "key"
+        }
         _ if delimiter_name
             && segments
                 .iter()
