@@ -1147,3 +1147,14 @@ Wave 5 accepted: `docs/reviews/papercuts-wave5-acceptance-2026-07-16.md`. Merge/
 ## 2026-07-16 - Sol high via codex - Wave 4b skill reconciliation (`codex-49`, ~20 min)
 
 Live home-dir skill libraries, no git safety net: 18 divergent duplicates reconciled to authoritative copies, 12 broken symlinks trashed, browser-use collapsed to identical redirect stubs, all behind a verified 31-entry backup manifest. Doctor: 32 unacknowledged findings -> 0, with only 2 allowlist entries, each carrying a checkable justification (intentional harness overlays). Correctly softened the agent-browser upstream issue after live evidence contradicted the diagnostic's stronger wording, and surfaced a real drift the diagnostic missed: installed exa-agent binary is 0.2.0, not the repo's 0.3.0 (pc_d57b22b4cb84). Coordinator verified doctor state, stub contents, and backups on disk. Confidence: high.
+
+## 2026-07-16 - Wave 7 fan-out, first batch (coordinator: Claude Opus)
+
+Wave 6 struck from this engine: the delegate-agent session owns it (branch feature/wave6-hardening), with Trey overturning the 6.1 worktree-default flip — recorded as plan amendments. Coordination happened over post mail; both of that session's drift warnings (Wave 2 unshipped, missing diagnostic report) were stale artifacts of the deleted-branch incident, already fixed by the morning recovery.
+
+Three parallel Sol-high work lanes on clean repos, all completed first-try with green gates and zero coordinator-found defects:
+- **contacts-cli** (`codex-66`-era, branch wave7/contacts-point-fixes, merged b6a9ea6): email normalization at the touch boundary + warmth downgrade guard with forced `--why`. 33 tests green, coordinator re-ran.
+- **ai-profile-router** (`1a67dca`): `credential-names` command, values excluded by construction; coordinator verified live output is names/booleans only. 73 tests green.
+- **x-watch** (`1c9bd2e`): opt-in `doctor --online`, 401 → credential_invalid + portal remediation; live path mocked pending Trey's key regeneration. 15 tests green.
+
+Coordinator inline: transcribe-url no-transcript exit-1 guard + event-page mirror hint, regression exercised via curl shim. Packard item re-scoped: it lives inside gavel's lane-prompt files, folded into the pending gavel lane.
