@@ -50,3 +50,17 @@ Six independent Sol-xhigh review lanes (Codex work mode), one per repo, over tod
 ## Suggested execution if Trey approves fixes
 
 One findings-shaped fix lane per repo (6 lanes, parallelizable; contacts/ai-profiles/x-watch are small), each pinned to this doc's items with regression tests required, then single re-review pass per repo on the fix diff only. Estimated: one session.
+
+---
+
+## Outcomes (appended post-fix-round, same day)
+
+**All 12 majors and 15 minors: FIXED** (except two coordinator-deferred minors: radar STATE.md refresh — updates at next session per its own convention; exa schema-refresh timeout pin — rides the next exa round). Every fix carries a pinning test demonstrated red on pre-fix code. Six scoped Grok re-reviews confirmed all findings CLOSED, zero reopened, and surfaced five NEW findings:
+
+- x-watch N1 (major): shared error envelope still reflected upstream text — **fixed** (`4940834`), and the fix exposed + repaired a latent offset bug inside `redact.ts` itself.
+- radar N2 (operational): non-castable timestamps hard-failed the promote RPC — **fixed** via append-only safe-cast migration (`8388873`).
+- ai-profiles NEW-2: `--fixture-root` bypassed confinement — **fixed** (`b1fa411`); NEW-1 (zsh -f executes key files) **accepted as documented trade-off** — the files are already sourced by every interactive zsh; README security-model note added.
+- papercuts: over-broad userinfo redaction **accepted** (defense-in-depth); evidence-surface test-coverage nit accepted.
+- contacts NEW-1/nit: accepted at nit level.
+
+Final state per repo: all gates green, all work committed locally, nothing pushed.
