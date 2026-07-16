@@ -1143,3 +1143,7 @@ Ground work first: recovered 26 dangling wave 0-4a commits from reflog (branch h
 **Sol high via codex, wave-5 fix (`codex-65`, ~24 min):** all 9 findings fixed with the honest fixture rebuild (main-built binary + loopback capture harness, provenance README). Ran its own two-lane review unprompted, found and fixed 2 real additional bugs, and correctly rejected 1 out-of-scope finding with the right reason. Treated an ergonomics regression surfaced by the gate as a real failure rather than weakening tests. Exemplary run.
 
 Wave 5 accepted: `docs/reviews/papercuts-wave5-acceptance-2026-07-16.md`. Merge/push of `remediation-wave5` gated on Trey.
+
+## 2026-07-16 - Sol high via codex - Wave 4b skill reconciliation (`codex-49`, ~20 min)
+
+Live home-dir skill libraries, no git safety net: 18 divergent duplicates reconciled to authoritative copies, 12 broken symlinks trashed, browser-use collapsed to identical redirect stubs, all behind a verified 31-entry backup manifest. Doctor: 32 unacknowledged findings -> 0, with only 2 allowlist entries, each carrying a checkable justification (intentional harness overlays). Correctly softened the agent-browser upstream issue after live evidence contradicted the diagnostic's stronger wording, and surfaced a real drift the diagnostic missed: installed exa-agent binary is 0.2.0, not the repo's 0.3.0 (pc_d57b22b4cb84). Coordinator verified doctor state, stub contents, and backups on disk. Confidence: high.
