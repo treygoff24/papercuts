@@ -1,10 +1,11 @@
 [package]
 name = "papercuts"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 description = "A tiny CLI for AI agents to log the papercuts they hit during work."
 repository = "https://github.com/treygoff24/papercuts"
+include = ["src/**", "tests/**", "Cargo.toml", "Cargo.lock", "README.md", "CHANGELOG.md", "LICENSE"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
